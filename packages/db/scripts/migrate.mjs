@@ -20,7 +20,7 @@ if (!connectionString) {
 
 const client = new pg.Client({
   connectionString,
-  ssl: connectionString.includes("supabase.co") ? { rejectUnauthorized: false } : undefined,
+  ssl: /supabase\.(co|com)/.test(connectionString) ? { rejectUnauthorized: false } : undefined,
 });
 
 async function main() {
