@@ -22,3 +22,18 @@ extension Color {
         }
     }
 }
+
+extension Font {
+    /// Editorial serif used for names + section headers. Body text stays in the
+    /// system font for maximum legibility.
+    static func display(_ style: Font.TextStyle, weight: Font.Weight = .semibold) -> Font {
+        .system(style, design: .serif).weight(weight)
+    }
+}
+
+extension View {
+    /// Section header style: serif, slightly tracked, easy to scan.
+    func sectionHeaderStyle() -> some View {
+        self.font(.display(.title3, weight: .semibold))
+    }
+}

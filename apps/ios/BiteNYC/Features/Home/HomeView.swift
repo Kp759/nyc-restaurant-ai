@@ -29,8 +29,8 @@ struct HomeView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Bite").font(.largeTitle).fontWeight(.heavy)
-                + Text("NYC").font(.largeTitle).fontWeight(.heavy).foregroundColor(Theme.accent)
+            Text("Bite").font(.display(.largeTitle, weight: .heavy))
+                + Text("NYC").font(.display(.largeTitle, weight: .heavy)).foregroundColor(Theme.accent)
             Text("Your AI dining concierge for New York City")
                 .font(.subheadline).foregroundStyle(.secondary)
         }
@@ -38,7 +38,7 @@ struct HomeView: View {
 
     private var searchBar: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("What are you looking for?").font(.headline)
+            Text("What are you looking for?").sectionHeaderStyle()
             HStack {
                 Image(systemName: "sparkles").foregroundStyle(Theme.accent)
                 TextField("Cozy date-night spots in West Village…", text: $queryText)
@@ -59,7 +59,7 @@ struct HomeView: View {
 
     private var promptChips: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Quick ideas").font(.headline)
+            Text("Quick ideas").sectionHeaderStyle()
             FlowLayout(spacing: 8) {
                 ForEach(HomePrompts.chips, id: \.label) { chip in
                     NavigationLink(value: SearchRoute(query: chip.label)) {
@@ -75,7 +75,7 @@ struct HomeView: View {
     private var vibeCategoriesSection: some View {
         if !vibeCategories.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                Text("NYC vibes").font(.headline)
+                Text("NYC vibes").sectionHeaderStyle()
                 ForEach(vibeCategories) { category in
                     NavigationLink(value: SearchRoute(query: category.label)) {
                         HStack {

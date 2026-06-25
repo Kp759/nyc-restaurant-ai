@@ -24,6 +24,9 @@ struct Restaurant: Codable, Identifiable, Hashable {
     var opentableId: String?
     var tockUrl: String?
     var directBookingUrl: String?
+    var instagramUrl: String?
+    var xUrl: String?
+    var facebookUrl: String?
     var healthGrade: String?
     var healthGradeDate: String?
     var healthInspectionScore: Int?
@@ -66,6 +69,29 @@ struct Restaurant: Codable, Identifiable, Hashable {
 
     static func == (lhs: Restaurant, rhs: Restaurant) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+struct SocialLink: Identifiable, Hashable {
+    let platform: String   // instagram | x | facebook
+    let url: String
+    var id: String { platform }
+}
+
+extension Restaurant {
+    /// Direct social profile if known, else a reliable web search for the
+    /// restaurant on that platform (we never fabricate handles).
+    var socialLinks: [SocialLink] {
+        func search(_ platformQuery: String) -> String {
+            let q = "\(name) \(neighborhood) NYC \(platformQuery)"
+            let enc = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? q
+            return "https://www.google.com/search?q=\(enc)"
+        }
+        return [
+            SocialLink(platform: "instagram", url: instagramUrl ?? search("instagram")),
+            SocialLink(platform: "x", url: xUrl ?? search("x twitter")),
+            SocialLink(platform: "facebook", url: facebookUrl ?? search("facebook")),
+        ]
+    }
 }
 
 struct SimilarRestaurant: Codable, Identifiable, Hashable {
