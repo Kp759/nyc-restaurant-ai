@@ -121,13 +121,17 @@ struct HomeView: View {
     @ViewBuilder
     private var vibeCategoriesSection: some View {
         if !vibeCategories.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("NYC vibes").sectionHeaderStyle()
-                    Spacer()
-                    Text("Scroll to zoom").font(.caption2).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 14) {
+                Text("NYC vibes").sectionHeaderStyle()
+                ForEach(Array(vibeCategories.enumerated()), id: \.element.id) { index, category in
+                    NavigationLink(value: SearchRoute(query: category.label)) {
+                        FeatureVibeCard(
+                            category: category,
+                            palette: VibePalette.make(for: category.label, index: index)
+                        )
+                    }
+                    .buttonStyle(CardPressStyle())
                 }
-                VibeHoneycomb(categories: vibeCategories)
             }
         }
     }
@@ -150,94 +154,59 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Vibe honeycomb
+// MARK: - Vibe feature card
 
-/// Apple Watch–style honeycomb: circular vibe bubbles packed in offset rows.
-/// Each bubble grows as it nears the vertical center of the screen and shrinks
-/// toward the edges as the page scrolls.
-struct VibeHoneycomb: View {
-    let categories: [VibeCategory]
-
-    private let diameter: CGFloat = 96
-    private let hGap: CGFloat = 12
-
-    /// Rows alternate 3 / 2 items for a hexagonal tessellation, while keeping
-    /// each item's original index so the gradient palette stays varied.
-    private var rows: [[(index: Int, category: VibeCategory)]] {
-        var result: [[(Int, VibeCategory)]] = []
-        var i = 0
-        var wide = true
-        while i < categories.count {
-            let count = wide ? 3 : 2
-            let slice = categories[i..<min(i + count, categories.count)]
-            result.append(slice.enumerated().map { (i + $0.offset, $0.element) })
-            i += count
-            wide.toggle()
-        }
-        return result
-    }
-
-    var body: some View {
-        VStack(spacing: -diameter * 0.08) {
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: hGap) {
-                    ForEach(row, id: \.category.id) { item in
-                        NavigationLink(value: SearchRoute(query: item.category.label)) {
-                            HoneycombBubble(
-                                category: item.category,
-                                palette: VibePalette.make(for: item.category.label, index: item.index),
-                                diameter: diameter
-                            )
-                        }
-                        .buttonStyle(BubblePressStyle())
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-    }
-}
-
-/// Zooms the bubble up while it's being touched, like the watchOS home screen,
-/// and lifts it above its neighbors so it pops out.
-struct BubblePressStyle: ButtonStyle {
+/// Subtle press feedback for large tappable cards.
+struct CardPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 1.28 : 1.0)
-            .zIndex(configuration.isPressed ? 1 : 0)
-            .animation(.spring(response: 0.32, dampingFraction: 0.55), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.easeOut(duration: 0.18), value: configuration.isPressed)
     }
 }
 
-/// A single circular vibe bubble.
-struct HoneycombBubble: View {
+/// Large, full-width magazine-style card for an NYC vibe category.
+struct FeatureVibeCard: View {
     let category: VibeCategory
     let palette: VibePalette
-    let diameter: CGFloat
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(LinearGradient(colors: palette.colors,
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-            Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1)
+        ZStack(alignment: .leading) {
+            LinearGradient(colors: palette.colors,
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
 
-            VStack(spacing: 3) {
-                Image(systemName: palette.icon)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(.white)
+            Image(systemName: palette.icon)
+                .font(.system(size: 140, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.16))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .offset(x: 28, y: 6)
+
+            VStack(alignment: .leading, spacing: 8) {
+                if let hood = category.neighborhood, !hood.isEmpty {
+                    Text(hood.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .tracking(1.6)
+                        .foregroundStyle(.white.opacity(0.9))
+                }
                 Text(category.label)
-                    .font(.caption2.weight(.semibold))
+                    .font(.display(.title, weight: .bold))
                     .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.75)
-                    .padding(.horizontal, 8)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 5) {
+                    Text("Explore")
+                    Image(systemName: "arrow.right")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.95))
+                .padding(.top, 2)
             }
+            .padding(20)
         }
-        .frame(width: diameter, height: diameter)
-        .shadow(color: (palette.colors.last ?? .black).opacity(0.3), radius: 5, y: 3)
+        .frame(maxWidth: .infinity)
+        .frame(height: 168)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .shadow(color: (palette.colors.last ?? .black).opacity(0.3), radius: 8, y: 5)
     }
 }
 
