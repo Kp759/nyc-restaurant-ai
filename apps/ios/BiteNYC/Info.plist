@@ -45,6 +45,8 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>BiteNYC uses your location to show nearby NYC restaurants, cafes, and date-night spots and to sort results by distance.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>BiteNYC connects to the BiteNYC API running on your computer's local network to load restaurants, photos, and AI recommendations.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
