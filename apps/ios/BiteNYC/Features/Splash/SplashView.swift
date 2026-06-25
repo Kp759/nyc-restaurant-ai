@@ -35,8 +35,10 @@ struct SplashView: View {
 
                     Image("AppLogo")
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                         .frame(width: 150, height: 150)
+                        .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 3))
                         .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
                         .scaleEffect(logoScale)
                         .opacity(logoOpacity)

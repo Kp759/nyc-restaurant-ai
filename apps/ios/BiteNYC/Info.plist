@@ -51,6 +51,6 @@
 		<true/>
 	</dict>
 	<key>BiteNYCAPIBaseURL</key>
-	<string>http://localhost:4000</string>
+	<string>http://192.168.0.151:4000</string>
 </dict>
 </plist>
