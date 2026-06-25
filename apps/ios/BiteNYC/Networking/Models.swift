@@ -46,7 +46,22 @@ struct Restaurant: Codable, Identifiable, Hashable {
     }
 
     var mustTryDishes: [Dish] {
-        (dishes ?? []).filter { $0.isMustTry == true }
+        (dishes ?? [])
+            .filter { $0.isMustTry == true }
+            .sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
+    }
+
+    /// Full menu (everything that isn't already surfaced as a must-try).
+    var menuDishes: [Dish] {
+        (dishes ?? [])
+            .filter { $0.isMustTry != true }
+            .sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
+    }
+
+    /// Combined display tags: vibe + occasion + dietary, de-duplicated.
+    var displayTags: [String] {
+        var seen = Set<String>()
+        return (vibeTags + occasionTags + dietaryTags).filter { seen.insert($0).inserted }
     }
 
     static func == (lhs: Restaurant, rhs: Restaurant) -> Bool { lhs.id == rhs.id }

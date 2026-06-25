@@ -56,10 +56,11 @@ struct RestaurantDetailView: View {
                 hero(r)
                 header(r)
                 if !(r.bookingLinks ?? []).isEmpty { bookingSection(r) }
-                if !r.vibeTags.isEmpty { tagsSection(r) }
+                if !r.displayTags.isEmpty { tagsSection(r) }
                 if let summary = r.editorialSummary ?? r.description { summarySection(summary) }
-                if !r.mustTryDishes.isEmpty { dishesSection(r) }
                 if let clips = r.media?.filter({ $0.mediaType != "photo" }), !clips.isEmpty { clipsSection(clips) }
+                if !r.mustTryDishes.isEmpty { dishesSection(r) }
+                if !r.menuDishes.isEmpty { menuSection(r) }
                 if let photos = r.media?.filter({ $0.mediaType == "photo" }), !photos.isEmpty { gallerySection(photos) }
                 mapSection(r)
                 if let similar = r.similar, !similar.isEmpty { similarSection(similar) }
@@ -113,7 +114,7 @@ struct RestaurantDetailView: View {
 
     private func tagsSection(_ r: Restaurant) -> some View {
         FlowLayout(spacing: 8) {
-            ForEach(r.vibeTags, id: \.self) { TagChip(text: prettyTag($0)) }
+            ForEach(r.displayTags, id: \.self) { TagChip(text: prettyTag($0)) }
         }
         .padding(.horizontal)
     }
@@ -142,9 +143,31 @@ struct RestaurantDetailView: View {
         }
     }
 
+    private func menuSection(_ r: Restaurant) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Menu").font(.headline).padding(.horizontal)
+            ForEach(r.menuDishes) { dish in
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text(dish.name).font(.subheadline).fontWeight(.semibold)
+                        Spacer()
+                        if let type = dish.dishType, !type.isEmpty {
+                            Text(prettyTag(type)).font(.caption2).foregroundStyle(Theme.accent)
+                        }
+                    }
+                    if let desc = dish.description, !desc.isEmpty {
+                        Text(desc).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+                Divider().padding(.leading).opacity(0.4)
+            }
+        }
+    }
+
     private func clipsSection(_ clips: [MediaItem]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Clips").font(.headline).padding(.horizontal)
+            Text("Reels & clips").font(.headline).padding(.horizontal)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(clips) { clip in
