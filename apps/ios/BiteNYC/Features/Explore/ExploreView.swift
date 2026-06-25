@@ -2,6 +2,7 @@ import SwiftUI
 import MapKit
 
 struct ExploreView: View {
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var model = ExploreViewModel()
     @State private var mode: Mode = .list
     @State private var showFilters = false
@@ -113,10 +114,21 @@ struct ExploreView: View {
             } else {
                 LazyVStack(spacing: 16) {
                     ForEach(model.restaurants) { r in
-                        NavigationLink(value: RestaurantRoute(slug: r.slug)) {
-                            RestaurantCard(restaurant: r)
+                        VStack(spacing: 8) {
+                            NavigationLink(value: RestaurantRoute(slug: r.slug)) {
+                                RestaurantCard(restaurant: r)
+                            }
+                            .buttonStyle(.plain)
+
+                            Button { router.reserve(r) } label: {
+                                Label("Reserve a table", systemImage: "calendar.badge.plus")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                    .background(Theme.accent.opacity(0.14))
+                                    .foregroundStyle(Theme.accent)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding()

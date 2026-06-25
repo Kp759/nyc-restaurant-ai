@@ -20,6 +20,13 @@ struct RootView: View {
             SavedListsView()
                 .tabItem { Label("Saved", systemImage: "bookmark") }
                 .tag(AppRouter.Tab.saved)
+
+            AccountView()
+                .tabItem { Label("Account", systemImage: "person.crop.circle") }
+                .tag(AppRouter.Tab.account)
+        }
+        .sheet(item: $router.reservationTarget) { restaurant in
+            ReserveSheet(restaurant: restaurant)
         }
     }
 }
@@ -28,5 +35,6 @@ struct RootView: View {
     RootView()
         .environmentObject(SavedListsStore())
         .environmentObject(AppRouter())
+        .environmentObject(AccountStore())
         .preferredColorScheme(.dark)
 }

@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct BiteNYCApp: App {
     @StateObject private var savedStore = SavedListsStore()
+    @StateObject private var accountStore = AccountStore()
     @StateObject private var router = AppRouter()
     @State private var showSplash = true
 
@@ -11,6 +12,7 @@ struct BiteNYCApp: App {
             ZStack {
                 RootView()
                     .environmentObject(savedStore)
+                    .environmentObject(accountStore)
                     .environmentObject(router)
                     .tint(Theme.accent)
 

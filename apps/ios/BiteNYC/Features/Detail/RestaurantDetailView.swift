@@ -5,11 +5,14 @@ struct RestaurantDetailView: View {
     let slug: String
 
     @EnvironmentObject private var saved: SavedListsStore
+    @EnvironmentObject private var account: AccountStore
+    @EnvironmentObject private var router: AppRouter
     @State private var restaurant: Restaurant?
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showSaveSheet = false
     @State private var showReport = false
+    @State private var showReview = false
 
     var body: some View {
         Group {
@@ -38,6 +41,9 @@ struct RestaurantDetailView: View {
         .sheet(isPresented: $showSaveSheet) {
             if let restaurant { AddToListSheet(restaurant: restaurant) }
         }
+        .sheet(isPresented: $showReview) {
+            if let restaurant { WriteReviewSheet(restaurant: restaurant) }
+        }
         .confirmationDialog("Report this listing?", isPresented: $showReport, titleVisibility: .visible) {
             if let restaurant {
                 ForEach(["inaccurate", "spam", "nsfw", "copyright", "other"], id: \.self) { reason in
@@ -55,6 +61,7 @@ struct RestaurantDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
                 hero(r)
                 header(r)
+                actionsSection(r)
                 if !(r.bookingLinks ?? []).isEmpty { bookingSection(r) }
                 if !r.displayTags.isEmpty { tagsSection(r) }
                 if let summary = r.editorialSummary ?? r.description { summarySection(summary) }
@@ -104,6 +111,45 @@ struct RestaurantDetailView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    private func actionsSection(_ r: Restaurant) -> some View {
+        VStack(spacing: 10) {
+            Button { router.reserve(r) } label: {
+                Label("Reserve a table", systemImage: "calendar.badge.plus")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity).padding(.vertical, 13)
+                    .background(Theme.accent).foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            HStack(spacing: 10) {
+                secondaryAction(
+                    title: account.hasVisited(r) ? "Been here" : "Mark visited",
+                    icon: account.hasVisited(r) ? "checkmark.seal.fill" : "checkmark.seal",
+                    active: account.hasVisited(r)
+                ) { account.toggleVisited(r) }
+
+                secondaryAction(
+                    title: account.review(for: r) == nil ? "Write review" : "Edit review",
+                    icon: "star.bubble",
+                    active: account.review(for: r) != nil
+                ) { showReview = true }
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func secondaryAction(
+        title: String, icon: String, active: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity).padding(.vertical, 11)
+                .background(active ? Theme.accent.opacity(0.16) : Theme.cardBackground)
+                .foregroundStyle(active ? Theme.accent : .primary)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
     }
 
     private func bookingSection(_ r: Restaurant) -> some View {
