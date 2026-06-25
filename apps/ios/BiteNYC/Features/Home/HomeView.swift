@@ -7,7 +7,10 @@ struct HomeView: View {
     @State private var vibeCategories: [VibeCategory] = []
     @State private var path = NavigationPath()
     @State private var exampleIndex = 0
+    @State private var showAllVibes = false
     @FocusState private var askFocused: Bool
+
+    private let vibePreviewCount = 4
 
     private let examples = [
         "Cozy date-night spot in the West Village…",
@@ -50,17 +53,33 @@ struct HomeView: View {
         }
     }
 
+    private var askGradient: LinearGradient {
+        LinearGradient(
+            colors: [Theme.accent, Color(red: 0.96, green: 0.18, blue: 0.55)],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+    }
+
     private var askHero: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles").font(.title3).foregroundStyle(Theme.accent)
-                Text("Ask BiteNYC").font(.display(.title2, weight: .bold))
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(askGradient)
+                    Image(systemName: "sparkles")
+                        .font(.title3.weight(.bold)).foregroundStyle(.white)
+                }
+                .frame(width: 44, height: 44)
+                .shadow(color: Theme.accent.opacity(0.4), radius: 6, y: 3)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ask BiteNYC").font(.display(.title2, weight: .bold))
+                    Text("Your AI dining concierge")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
             }
-            Text("Describe the vibe, occasion, dish, or neighborhood — I'll find the spot.")
-                .font(.subheadline).foregroundStyle(.secondary)
 
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "text.bubble").font(.title3).foregroundStyle(Theme.accent).padding(.top, 4)
                 TextField(
                     "Ask anything",
                     text: $queryText,
@@ -73,32 +92,52 @@ struct HomeView: View {
                 .submitLabel(.search)
                 .onSubmit(submit)
                 Button(action: submit) {
-                    Image(systemName: "arrow.up.circle.fill").font(.largeTitle)
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.largeTitle)
+                        .foregroundStyle(askGradient)
                 }
-                .tint(Theme.accent)
                 .disabled(queryText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(18)
             .background(RoundedRectangle(cornerRadius: 18).fill(Color(.systemBackground)))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.accent.opacity(0.55), lineWidth: 1.5))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(askGradient, lineWidth: 2)
+            )
 
             Button(action: submit) {
-                Text("Ask").fontWeight(.semibold).frame(maxWidth: .infinity)
+                Label("Ask BiteNYC", systemImage: "sparkles")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(askGradient)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+                    .shadow(color: Theme.accent.opacity(0.35), radius: 8, y: 4)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.accent)
-            .controlSize(.large)
+            .opacity(queryText.trimmingCharacters(in: .whitespaces).isEmpty ? 0.55 : 1)
             .disabled(queryText.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .padding(16)
+        .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 22).fill(
-                LinearGradient(
-                    colors: [Theme.accent.opacity(0.20), Theme.accent.opacity(0.04)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
+            ZStack {
+                RoundedRectangle(cornerRadius: 24).fill(
+                    LinearGradient(
+                        colors: [Theme.accent.opacity(0.22), Color(red: 0.96, green: 0.18, blue: 0.55).opacity(0.10)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
                 )
-            )
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 120, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.05))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .offset(x: 20, y: 16)
+            }
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24).stroke(askGradient.opacity(0.25), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
         .onReceive(rotation) { _ in
             guard queryText.isEmpty, !askFocused else { return }
             withAnimation(.easeInOut) { exampleIndex = (exampleIndex + 1) % examples.count }
@@ -122,9 +161,10 @@ struct HomeView: View {
     @ViewBuilder
     private var vibeCategoriesSection: some View {
         if !vibeCategories.isEmpty {
+            let shown = showAllVibes ? vibeCategories : Array(vibeCategories.prefix(vibePreviewCount))
             VStack(alignment: .leading, spacing: 14) {
                 Text("NYC vibes").sectionHeaderStyle()
-                ForEach(Array(vibeCategories.enumerated()), id: \.element.id) { index, category in
+                ForEach(Array(shown.enumerated()), id: \.element.id) { index, category in
                     NavigationLink(value: SearchRoute(query: category.label)) {
                         FeatureVibeCard(
                             category: category,
@@ -132,6 +172,25 @@ struct HomeView: View {
                         )
                     }
                     .buttonStyle(CardPressStyle())
+                }
+
+                if vibeCategories.count > vibePreviewCount {
+                    Button {
+                        withAnimation(.easeInOut) { showAllVibes.toggle() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text(showAllVibes ? "Show less" : "See all \(vibeCategories.count) vibes")
+                            Image(systemName: showAllVibes ? "chevron.up" : "chevron.down")
+                            Spacer()
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.accent.opacity(0.10))
+                        .clipShape(Capsule())
+                    }
                 }
             }
         }
@@ -182,25 +241,35 @@ struct FeatureVibeCard: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .offset(x: 20, y: 4)
 
-            VStack(alignment: .leading, spacing: 5) {
-                if let hood = category.neighborhood, !hood.isEmpty {
-                    Text(hood.uppercased())
-                        .font(.caption2.weight(.bold))
-                        .tracking(1.4)
-                        .foregroundStyle(.white.opacity(0.9))
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(.white.opacity(0.22))
+                    Text(palette.emoji).font(.title)
                 }
-                Text(category.label)
-                    .font(.display(.title3, weight: .bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 4) {
-                    Text("Explore")
-                    Image(systemName: "arrow.right")
+                .frame(width: 52, height: 52)
+                .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: 1))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    if let hood = category.neighborhood, !hood.isEmpty {
+                        Text(hood.uppercased())
+                            .font(.caption2.weight(.bold))
+                            .tracking(1.4)
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                    Text(category.label)
+                        .font(.display(.title3, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 4) {
+                        Text("Explore")
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.95))
+                    .padding(.top, 1)
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.95))
-                .padding(.top, 1)
+                Spacer(minLength: 0)
             }
             .padding(16)
         }
@@ -215,6 +284,7 @@ struct FeatureVibeCard: View {
 struct VibePalette {
     let colors: [Color]
     let icon: String
+    let emoji: String
 
     private static let gradients: [[Color]] = [
         [Color(red: 1.00, green: 0.36, blue: 0.42), Color(red: 0.96, green: 0.16, blue: 0.55)], // pink/red
@@ -228,7 +298,30 @@ struct VibePalette {
     ]
 
     static func make(for label: String, index: Int) -> VibePalette {
-        VibePalette(colors: gradients[index % gradients.count], icon: icon(for: label))
+        VibePalette(
+            colors: gradients[index % gradients.count],
+            icon: icon(for: label),
+            emoji: emoji(for: label)
+        )
+    }
+
+    private static func emoji(for label: String) -> String {
+        let l = label.lowercased()
+        switch true {
+        case l.contains("date"), l.contains("romantic"): return "💕"
+        case l.contains("cafe"), l.contains("coffee"), l.contains("work"): return "☕️"
+        case l.contains("rooftop"): return "🌆"
+        case l.contains("late"), l.contains("night"): return "🌙"
+        case l.contains("trendy"), l.contains("hot"): return "🔥"
+        case l.contains("cozy"): return "🕯️"
+        case l.contains("waterfront"), l.contains("dumbo"): return "🌊"
+        case l.contains("group"), l.contains("crawl"), l.contains("dinner"): return "🥂"
+        case l.contains("upscale"), l.contains("michelin"), l.contains("tribeca"): return "✨"
+        case l.contains("aesthetic"), l.contains("gallery"), l.contains("art"): return "📸"
+        case l.contains("must-eat"), l.contains("food"), l.contains("flushing"): return "🍜"
+        case l.contains("cocktail"), l.contains("bar"): return "🍸"
+        default: return "🍽️"
+        }
     }
 
     private static func icon(for label: String) -> String {
