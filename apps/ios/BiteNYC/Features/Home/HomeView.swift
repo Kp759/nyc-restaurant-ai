@@ -53,33 +53,34 @@ struct HomeView: View {
     private var askHero: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Image(systemName: "sparkles").foregroundStyle(Theme.accent)
-                Text("Ask BiteNYC").font(.display(.title3, weight: .semibold))
+                Image(systemName: "sparkles").font(.title3).foregroundStyle(Theme.accent)
+                Text("Ask BiteNYC").font(.display(.title2, weight: .bold))
             }
             Text("Describe the vibe, occasion, dish, or neighborhood — I'll find the spot.")
                 .font(.subheadline).foregroundStyle(.secondary)
 
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "text.bubble").foregroundStyle(Theme.accent).padding(.top, 2)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "text.bubble").font(.title3).foregroundStyle(Theme.accent).padding(.top, 4)
                 TextField(
                     "Ask anything",
                     text: $queryText,
                     prompt: Text(examples[exampleIndex]).foregroundColor(.secondary),
                     axis: .vertical
                 )
-                .lineLimit(1...3)
+                .font(.title3)
+                .lineLimit(2...6)
                 .focused($askFocused)
                 .submitLabel(.search)
                 .onSubmit(submit)
                 Button(action: submit) {
-                    Image(systemName: "arrow.up.circle.fill").font(.title)
+                    Image(systemName: "arrow.up.circle.fill").font(.largeTitle)
                 }
                 .tint(Theme.accent)
                 .disabled(queryText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color(.systemBackground)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.accent.opacity(0.55), lineWidth: 1.5))
+            .padding(18)
+            .background(RoundedRectangle(cornerRadius: 18).fill(Color(.systemBackground)))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.accent.opacity(0.55), lineWidth: 1.5))
 
             Button(action: submit) {
                 Text("Ask").fontWeight(.semibold).frame(maxWidth: .infinity)
@@ -176,37 +177,37 @@ struct FeatureVibeCard: View {
                            startPoint: .topLeading, endPoint: .bottomTrailing)
 
             Image(systemName: palette.icon)
-                .font(.system(size: 140, weight: .semibold))
+                .font(.system(size: 96, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.16))
                 .frame(maxWidth: .infinity, alignment: .trailing)
-                .offset(x: 28, y: 6)
+                .offset(x: 20, y: 4)
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 5) {
                 if let hood = category.neighborhood, !hood.isEmpty {
                     Text(hood.uppercased())
                         .font(.caption2.weight(.bold))
-                        .tracking(1.6)
+                        .tracking(1.4)
                         .foregroundStyle(.white.opacity(0.9))
                 }
                 Text(category.label)
-                    .font(.display(.title, weight: .bold))
+                    .font(.display(.title3, weight: .bold))
                     .foregroundStyle(.white)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Text("Explore")
                     Image(systemName: "arrow.right")
                 }
-                .font(.subheadline.weight(.semibold))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.95))
-                .padding(.top, 2)
+                .padding(.top, 1)
             }
-            .padding(20)
+            .padding(16)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 168)
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .shadow(color: (palette.colors.last ?? .black).opacity(0.3), radius: 8, y: 5)
+        .frame(height: 116)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .shadow(color: (palette.colors.last ?? .black).opacity(0.28), radius: 6, y: 4)
     }
 }
 
