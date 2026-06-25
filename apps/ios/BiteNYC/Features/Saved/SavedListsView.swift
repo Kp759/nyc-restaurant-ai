@@ -6,43 +6,38 @@ struct SavedListsView: View {
     @State private var newListName = ""
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(store.lists) { list in
-                    NavigationLink(value: list) {
-                        HStack {
-                            Text(list.emoji).font(.title3)
-                            VStack(alignment: .leading) {
-                                Text(list.name).fontWeight(.medium)
-                                Text("\(list.restaurants.count) place\(list.restaurants.count == 1 ? "" : "s")")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
+        List {
+            ForEach(store.lists) { list in
+                NavigationLink(value: list) {
+                    HStack {
+                        Text(list.emoji).font(.title3)
+                        VStack(alignment: .leading) {
+                            Text(list.name).fontWeight(.medium)
+                            Text("\(list.restaurants.count) place\(list.restaurants.count == 1 ? "" : "s")")
+                                .font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }
-                .onDelete { offsets in
-                    offsets.map { store.lists[$0].id }.forEach(store.deleteList)
-                }
             }
-            .navigationTitle("Saved")
-            .navigationDestination(for: SavedList.self) { list in
-                SavedListDetailView(listId: list.id)
+            .onDelete { offsets in
+                offsets.map { store.lists[$0].id }.forEach(store.deleteList)
             }
-            .navigationDestination(for: RestaurantRoute.self) { RestaurantDetailView(slug: $0.slug) }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showNewList = true } label: { Image(systemName: "plus") }
-                }
+        }
+        .navigationTitle("Saved lists")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showNewList = true } label: { Image(systemName: "plus") }
             }
-            .alert("New list", isPresented: $showNewList) {
-                TextField("List name", text: $newListName)
-                Button("Create") {
-                    let name = newListName.trimmingCharacters(in: .whitespaces)
-                    if !name.isEmpty { store.createList(name: name) }
-                    newListName = ""
-                }
-                Button("Cancel", role: .cancel) { newListName = "" }
+        }
+        .alert("New list", isPresented: $showNewList) {
+            TextField("List name", text: $newListName)
+            Button("Create") {
+                let name = newListName.trimmingCharacters(in: .whitespaces)
+                if !name.isEmpty { store.createList(name: name) }
+                newListName = ""
             }
+            Button("Cancel", role: .cancel) { newListName = "" }
         }
     }
 }

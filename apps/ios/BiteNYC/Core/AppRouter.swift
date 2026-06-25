@@ -4,7 +4,7 @@ import SwiftUI
 /// natural-language prompt to the conversational Chat tab.
 @MainActor
 final class AppRouter: ObservableObject {
-    enum Tab: Hashable { case home, explore, chat, saved, account }
+    enum Tab: Hashable { case home, explore, chat, account }
 
     @Published var selectedTab: Tab = .home
     @Published var pendingChatPrompt: String?

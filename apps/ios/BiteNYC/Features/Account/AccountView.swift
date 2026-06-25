@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum AccountRoute: Hashable { case reservations, visited, reviews }
+enum AccountRoute: Hashable { case reservations, visited, reviews, savedLists }
 
 struct AccountView: View {
     @EnvironmentObject private var account: AccountStore
@@ -18,6 +18,7 @@ struct AccountView: View {
                     statsRow
                     vibeSection
                     recommendationsSection
+                    savedListsSection
                     reservationsSection
                     visitedSection
                     reviewsSection
@@ -30,8 +31,10 @@ struct AccountView: View {
                 case .reservations: ReservationsListView()
                 case .visited: VisitedListView()
                 case .reviews: ReviewsListView()
+                case .savedLists: SavedListsView()
                 }
             }
+            .navigationDestination(for: SavedList.self) { SavedListDetailView(listId: $0.id) }
             .navigationDestination(for: RestaurantRoute.self) { RestaurantDetailView(slug: $0.slug) }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -160,6 +163,39 @@ struct AccountView: View {
                     }
                     .padding(.horizontal)
                 }
+            }
+        }
+    }
+
+    // MARK: Saved lists
+
+    private var savedListsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Saved lists") {
+                NavigationLink("See all", value: AccountRoute.savedLists)
+                    .font(.caption.weight(.semibold)).tint(Theme.accent)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(saved.lists) { list in
+                        NavigationLink(value: list) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(list.emoji).font(.title2)
+                                Spacer(minLength: 0)
+                                Text(list.name).font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary).lineLimit(1)
+                                Text("\(list.restaurants.count) place\(list.restaurants.count == 1 ? "" : "s")")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                            .padding(12)
+                            .frame(width: 130, height: 100, alignment: .leading)
+                            .background(Theme.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
             }
         }
     }

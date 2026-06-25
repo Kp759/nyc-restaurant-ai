@@ -17,12 +17,8 @@ struct RootView: View {
                 .tabItem { Label("Ask AI", systemImage: "bubble.left.and.text.bubble.right") }
                 .tag(AppRouter.Tab.chat)
 
-            SavedListsView()
-                .tabItem { Label("Saved", systemImage: "bookmark") }
-                .tag(AppRouter.Tab.saved)
-
             AccountView()
-                .tabItem { Label("Account", systemImage: "person.crop.circle") }
+                .tabItem { Label("You", systemImage: "person.crop.circle") }
                 .tag(AppRouter.Tab.account)
         }
         .sheet(item: $router.reservationTarget) { restaurant in

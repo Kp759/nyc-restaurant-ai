@@ -118,11 +118,6 @@ struct HomeView: View {
         }
     }
 
-    private let vibeColumns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12),
-    ]
-
     @ViewBuilder
     private var vibeCategoriesSection: some View {
         if !vibeCategories.isEmpty {
@@ -130,16 +125,10 @@ struct HomeView: View {
                 HStack {
                     Text("NYC vibes").sectionHeaderStyle()
                     Spacer()
-                    Text("Tap to explore").font(.caption2).foregroundStyle(.secondary)
+                    Text("Swipe to explore").font(.caption2).foregroundStyle(.secondary)
                 }
-                LazyVGrid(columns: vibeColumns, spacing: 12) {
-                    ForEach(Array(vibeCategories.enumerated()), id: \.element.id) { index, category in
-                        NavigationLink(value: SearchRoute(query: category.label)) {
-                            VibeCard(category: category, palette: VibePalette.make(for: category.label, index: index))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+                VibeCarousel(categories: vibeCategories)
+                    .padding(.horizontal, -16)   // bleed past the page padding
             }
         }
     }
@@ -159,6 +148,52 @@ struct HomeView: View {
         } catch {
             vibeCategories = []
         }
+    }
+}
+
+// MARK: - Vibe carousel
+
+/// Coverflow-style carousel: the centered card zooms up and is highlighted
+/// while neighbors shrink and fade as you swipe (iOS 17 scroll transitions).
+struct VibeCarousel: View {
+    let categories: [VibeCategory]
+
+    private let cardWidth: CGFloat = 210
+    private let cardHeight: CGFloat = 250
+
+    var body: some View {
+        GeometryReader { geo in
+            let sidePadding = max((geo.size.width - cardWidth) / 2, 16)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
+                        NavigationLink(value: SearchRoute(query: category.label)) {
+                            VibeCard(
+                                category: category,
+                                palette: VibePalette.make(for: category.label, index: index)
+                            )
+                            .frame(width: cardWidth, height: cardHeight)
+                            .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                                content
+                                    .scaleEffect(phase.isIdentity ? 1.0 : 0.84)
+                                    .opacity(phase.isIdentity ? 1.0 : 0.5)
+                                    .rotation3DEffect(
+                                        .degrees(phase.value * -10),
+                                        axis: (x: 0, y: 1, z: 0),
+                                        perspective: 0.6
+                                    )
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal, sidePadding)
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollClipDisabled()
+        }
+        .frame(height: cardHeight + 24)
     }
 }
 
