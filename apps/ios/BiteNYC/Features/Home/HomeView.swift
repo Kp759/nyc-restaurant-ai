@@ -178,7 +178,6 @@ struct VibeHoneycomb: View {
     }
 
     var body: some View {
-        let screenCenterY = UIScreen.main.bounds.midY
         VStack(spacing: -diameter * 0.08) {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 HStack(spacing: hGap) {
@@ -187,11 +186,10 @@ struct VibeHoneycomb: View {
                             HoneycombBubble(
                                 category: item.category,
                                 palette: VibePalette.make(for: item.category.label, index: item.index),
-                                diameter: diameter,
-                                screenCenterY: screenCenterY
+                                diameter: diameter
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(BubblePressStyle())
                     }
                 }
             }
@@ -201,49 +199,45 @@ struct VibeHoneycomb: View {
     }
 }
 
-/// A single circular vibe bubble that scales by its distance from screen center.
+/// Zooms the bubble up while it's being touched, like the watchOS home screen,
+/// and lifts it above its neighbors so it pops out.
+struct BubblePressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 1.28 : 1.0)
+            .zIndex(configuration.isPressed ? 1 : 0)
+            .animation(.spring(response: 0.32, dampingFraction: 0.55), value: configuration.isPressed)
+    }
+}
+
+/// A single circular vibe bubble.
 struct HoneycombBubble: View {
     let category: VibeCategory
     let palette: VibePalette
     let diameter: CGFloat
-    let screenCenterY: CGFloat
 
     var body: some View {
-        GeometryReader { geo in
-            let midY = geo.frame(in: .global).midY
-            let distance = abs(midY - screenCenterY)
-            let t = min(distance / 280, 1)            // 0 at center → 1 far away
-            let scale = 1.0 - t * 0.5                  // 1.0 → 0.5
-            let focused = scale > 0.86
+        ZStack {
+            Circle()
+                .fill(LinearGradient(colors: palette.colors,
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+            Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1)
 
-            ZStack {
-                Circle()
-                    .fill(LinearGradient(colors: palette.colors,
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1)
-
-                VStack(spacing: 3) {
-                    Image(systemName: palette.icon)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(.white)
-                    if focused {
-                        Text(category.label)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
-                            .padding(.horizontal, 8)
-                    }
-                }
+            VStack(spacing: 3) {
+                Image(systemName: palette.icon)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+                Text(category.label)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .padding(.horizontal, 8)
             }
-            .scaleEffect(scale)
-            .shadow(color: (palette.colors.last ?? .black).opacity(0.3 * scale),
-                    radius: 5, y: 3)
-            .frame(width: diameter, height: diameter)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(width: diameter, height: diameter)
+        .shadow(color: (palette.colors.last ?? .black).opacity(0.3), radius: 5, y: 3)
     }
 }
 
