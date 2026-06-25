@@ -15,6 +15,8 @@ export const scriptEnv = {
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiEmbeddingModel: process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
   googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY ?? "",
+  // Public base URL of the API, used to build proxied photo URLs stored in media_items.
+  apiPublicUrl: process.env.API_PUBLIC_URL ?? "http://localhost:4000",
   yelpApiKey: process.env.YELP_API_KEY ?? "",
   nycDohmhSodaUrl:
     process.env.NYC_DOHMH_SODA_URL ?? "https://data.cityofnewyork.us/resource/43nn-pn8j.json",

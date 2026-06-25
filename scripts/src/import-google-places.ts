@@ -20,7 +20,11 @@ const FIELD_MASK = [
   "places.userRatingCount",
   "places.primaryTypeDisplayName",
   "places.editorialSummary",
+  "places.photos",
+  "places.websiteUri",
 ].join(",");
+
+const MAX_PHOTOS = 5;
 
 const PRICE_LEVEL_MAP: Record<string, number> = {
   PRICE_LEVEL_INEXPENSIVE: 1,
@@ -54,16 +58,24 @@ async function textSearch(query: string) {
   return json.places ?? [];
 }
 
+/** Builds a proxied photo URL so the Google API key is never exposed to clients. */
+function buildPhotoUrl(resourceName: string, maxWidth = 1200): string {
+  const base = scriptEnv.apiPublicUrl.replace(/\/$/, "");
+  return `${base}/photo?name=${encodeURIComponent(resourceName)}&maxwidth=${maxWidth}`;
+}
+
 async function main() {
   if (!scriptEnv.googlePlacesApiKey) {
     console.error("GOOGLE_PLACES_API_KEY is not set.");
     process.exit(1);
   }
+  const publish = process.argv.includes("--publish");
   const supabase = getServiceClient();
   const phase1 = NEIGHBORHOODS.filter((n) => n.mvpPhase === 1);
 
   let inserted = 0;
   let skipped = 0;
+  let photosAdded = 0;
 
   for (const hood of phase1) {
     const query = `restaurants and cafes in ${hood.name}, ${hood.borough}, New York City`;
@@ -106,20 +118,51 @@ async function main() {
         review_count: p.userRatingCount ?? 0,
         editorial_summary: p.editorialSummary?.text ?? null,
         google_place_id: placeId,
-        status: "draft" as const,
+        direct_booking_url: p.websiteUri ?? null,
+        status: publish ? ("published" as const) : ("draft" as const),
       };
 
-      const { error } = await supabase.from("restaurants").insert(row);
-      if (error) {
-        console.error(`  ! ${name}: ${error.message}`);
+      const { data: insertedRow, error } = await supabase
+        .from("restaurants")
+        .insert(row)
+        .select("id")
+        .single();
+      if (error || !insertedRow) {
+        console.error(`  ! ${name}: ${error?.message ?? "insert failed"}`);
         continue;
       }
       inserted += 1;
-      console.log(`  + ${name}`);
+
+      const photos: any[] = Array.isArray(p.photos) ? p.photos.slice(0, MAX_PHOTOS) : [];
+      if (photos.length) {
+        const mediaRows = photos.map((photo) => ({
+          restaurant_id: insertedRow.id,
+          media_type: "photo" as const,
+          source: "licensed_api" as const,
+          url: buildPhotoUrl(photo.name, 1200),
+          thumbnail_url: buildPhotoUrl(photo.name, 600),
+          caption: photo.authorAttributions?.[0]?.displayName
+            ? `Photo: ${photo.authorAttributions[0].displayName}`
+            : null,
+          rights_status: "licensed" as const,
+          moderation_status: "approved" as const,
+        }));
+        const { error: mediaError } = await supabase.from("media_items").insert(mediaRows);
+        if (mediaError) {
+          console.error(`    ! photos for ${name}: ${mediaError.message}`);
+        } else {
+          photosAdded += mediaRows.length;
+        }
+      }
+
+      console.log(`  + ${name} (${photos.length} photos)`);
     }
   }
 
-  console.log(`\nDone. Inserted ${inserted} drafts, skipped ${skipped} existing.`);
+  console.log(
+    `\nDone. Inserted ${inserted} ${publish ? "published" : "draft"} restaurants, ` +
+      `${photosAdded} photos, skipped ${skipped} existing.`,
+  );
 }
 
 main().catch((err) => {
