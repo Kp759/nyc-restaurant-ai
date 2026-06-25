@@ -68,7 +68,7 @@ struct RestaurantDetailView: View {
                 socialSection(r)
                 if let clips = r.media?.filter({ $0.mediaType != "photo" }), !clips.isEmpty { clipsSection(clips) }
                 if !r.mustTryDishes.isEmpty { dishesSection(r) }
-                if !r.menuDishes.isEmpty { menuSection(r) }
+                if let dishes = r.dishes, !dishes.isEmpty { menuSection(dishes) }
                 if let photos = r.media?.filter({ $0.mediaType == "photo" }), !photos.isEmpty { gallerySection(photos) }
                 mapSection(r)
                 if let similar = r.similar, !similar.isEmpty { similarSection(similar) }
@@ -246,26 +246,52 @@ struct RestaurantDetailView: View {
         }
     }
 
-    private func menuSection(_ r: Restaurant) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Menu").sectionHeaderStyle().padding(.horizontal)
-            ForEach(r.menuDishes) { dish in
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack {
-                        Text(dish.name).font(.subheadline).fontWeight(.semibold)
-                        Spacer()
-                        if let type = dish.dishType, !type.isEmpty {
-                            Text(prettyTag(type)).font(.caption2).foregroundStyle(Theme.accent)
+    /// The complete menu, grouped into courses for easy scanning.
+    private func menuSection(_ dishes: [Dish]) -> some View {
+        let grouped = Dictionary(grouping: dishes) { MenuCourse.from($0.dishType) }
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Full menu").sectionHeaderStyle()
+                Spacer()
+                Text("\(dishes.count) item\(dishes.count == 1 ? "" : "s")")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal)
+
+            ForEach(MenuCourse.allCases) { course in
+                if let items = grouped[course], !items.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(course.title, systemImage: course.icon)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Theme.accent)
+                            .padding(.horizontal)
+                        ForEach(items.sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }) { dish in
+                            menuRow(dish)
                         }
                     }
-                    if let desc = dish.description, !desc.isEmpty {
-                        Text(desc).font(.caption).foregroundStyle(.secondary)
-                    }
                 }
-                .padding(.horizontal)
-                Divider().padding(.leading).opacity(0.4)
             }
         }
+    }
+
+    private func menuRow(_ dish: Dish) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(dish.name).font(.subheadline).fontWeight(.semibold)
+                    if dish.isMustTry == true {
+                        Image(systemName: "star.fill").font(.caption2).foregroundStyle(Theme.warn)
+                    }
+                    Spacer()
+                }
+                if let desc = dish.description ?? dish.whyTry, !desc.isEmpty {
+                    Text(desc).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Divider().opacity(0.4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
     }
 
     private func clipsSection(_ clips: [MediaItem]) -> some View {
@@ -381,5 +407,42 @@ struct RestaurantDetailView: View {
 
     private func report(_ r: Restaurant, reason: String) async {
         try? await APIClient.shared.report(targetType: "restaurant", targetId: r.id, reason: reason, details: nil)
+    }
+}
+
+/// Buckets the AI dish types (appetizer | small_plate | main | dessert | drink)
+/// into ordered, human-friendly menu courses.
+enum MenuCourse: Int, CaseIterable, Identifiable {
+    case starters, mains, desserts, drinks, other
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .starters: return "Starters & small plates"
+        case .mains: return "Mains"
+        case .desserts: return "Desserts"
+        case .drinks: return "Drinks"
+        case .other: return "More"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .starters: return "leaf"
+        case .mains: return "fork.knife"
+        case .desserts: return "birthday.cake"
+        case .drinks: return "wineglass"
+        case .other: return "square.grid.2x2"
+        }
+    }
+
+    static func from(_ dishType: String?) -> MenuCourse {
+        switch (dishType ?? "").lowercased() {
+        case "appetizer", "small_plate", "starter", "side": return .starters
+        case "main", "entree", "entrée": return .mains
+        case "dessert": return .desserts
+        case "drink", "cocktail", "beverage": return .drinks
+        default: return .other
+        }
     }
 }
