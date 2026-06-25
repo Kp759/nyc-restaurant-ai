@@ -150,11 +150,26 @@ struct HomeView: View {
             FlowLayout(spacing: 8) {
                 ForEach(HomePrompts.chips, id: \.label) { chip in
                     NavigationLink(value: SearchRoute(query: chip.label)) {
-                        TagChip(text: chip.label, systemImage: chip.icon)
+                        QuickIdeaChip(label: chip.label, emoji: ideaEmoji(chip.label))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(CardPressStyle())
                 }
             }
+        }
+    }
+
+    private func ideaEmoji(_ label: String) -> String {
+        switch label.lowercased() {
+        case "date night": return "💕"
+        case "cozy cafe": return "☕️"
+        case "birthday dinner": return "🎂"
+        case "rooftop": return "🌆"
+        case "walk-in friendly": return "🚶"
+        case "best pizza": return "🍕"
+        case "best ramen": return "🍜"
+        case "under $50": return "💵"
+        case "open late": return "🌙"
+        default: return "✨"
         }
     }
 
@@ -211,6 +226,33 @@ struct HomeView: View {
         } catch {
             vibeCategories = []
         }
+    }
+}
+
+// MARK: - Quick idea chip
+
+/// Pill-shaped quick-search chip with an emoji and a soft accent gradient.
+struct QuickIdeaChip: View {
+    let label: String
+    let emoji: String
+
+    private var gradient: LinearGradient {
+        LinearGradient(
+            colors: [Theme.accent, Color(red: 0.96, green: 0.18, blue: 0.55)],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(emoji).font(.subheadline)
+            Text(label).font(.subheadline.weight(.semibold))
+        }
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Capsule().fill(Theme.accent.opacity(0.10)))
+        .overlay(Capsule().stroke(gradient.opacity(0.45), lineWidth: 1))
     }
 }
 
