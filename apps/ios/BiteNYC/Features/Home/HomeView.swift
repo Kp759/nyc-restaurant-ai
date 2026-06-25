@@ -118,26 +118,27 @@ struct HomeView: View {
         }
     }
 
+    private let vibeColumns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+    ]
+
     @ViewBuilder
     private var vibeCategoriesSection: some View {
         if !vibeCategories.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("NYC vibes").sectionHeaderStyle()
-                ForEach(vibeCategories) { category in
-                    NavigationLink(value: SearchRoute(query: category.label)) {
-                        HStack {
-                            Text(category.label).font(.subheadline).fontWeight(.medium)
-                            Spacer()
-                            if let hood = category.neighborhood {
-                                Text(hood).font(.caption).foregroundStyle(.secondary)
-                            }
-                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("NYC vibes").sectionHeaderStyle()
+                    Spacer()
+                    Text("Tap to explore").font(.caption2).foregroundStyle(.secondary)
+                }
+                LazyVGrid(columns: vibeColumns, spacing: 12) {
+                    ForEach(Array(vibeCategories.enumerated()), id: \.element.id) { index, category in
+                        NavigationLink(value: SearchRoute(query: category.label)) {
+                            VibeCard(category: category, palette: VibePalette.make(for: category.label, index: index))
                         }
-                        .padding()
-                        .background(Theme.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -157,6 +158,88 @@ struct HomeView: View {
             vibeCategories = try await APIClient.shared.filters().vibeCategories
         } catch {
             vibeCategories = []
+        }
+    }
+}
+
+// MARK: - Vibe card
+
+/// Colorful, tappable tile for an NYC vibe category.
+struct VibeCard: View {
+    let category: VibeCategory
+    let palette: VibePalette
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            LinearGradient(colors: palette.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+
+            Image(systemName: palette.icon)
+                .font(.system(size: 70, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.16))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .offset(x: 10, y: 12)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: palette.icon)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                Spacer(minLength: 0)
+                Text(category.label)
+                    .font(.display(.subheadline, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let hood = category.neighborhood, !hood.isEmpty {
+                    Label(hood, systemImage: "mappin")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .lineLimit(1)
+                }
+            }
+            .padding(14)
+        }
+        .frame(height: 132)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .shadow(color: (palette.colors.last ?? .black).opacity(0.28), radius: 6, y: 3)
+    }
+}
+
+/// Mood-matched icon + a varied gradient for each vibe tile.
+struct VibePalette {
+    let colors: [Color]
+    let icon: String
+
+    private static let gradients: [[Color]] = [
+        [Color(red: 1.00, green: 0.36, blue: 0.42), Color(red: 0.96, green: 0.16, blue: 0.55)], // pink/red
+        [Color(red: 1.00, green: 0.55, blue: 0.20), Color(red: 1.00, green: 0.30, blue: 0.28)], // orange
+        [Color(red: 0.40, green: 0.50, blue: 0.98), Color(red: 0.60, green: 0.32, blue: 0.92)], // indigo/violet
+        [Color(red: 0.18, green: 0.72, blue: 0.62), Color(red: 0.12, green: 0.52, blue: 0.74)], // teal/blue
+        [Color(red: 0.95, green: 0.45, blue: 0.30), Color(red: 0.72, green: 0.22, blue: 0.55)], // sunset
+        [Color(red: 0.36, green: 0.42, blue: 0.78), Color(red: 0.20, green: 0.24, blue: 0.45)], // dusk
+        [Color(red: 0.20, green: 0.62, blue: 0.40), Color(red: 0.10, green: 0.42, blue: 0.36)], // green
+        [Color(red: 0.85, green: 0.30, blue: 0.42), Color(red: 0.55, green: 0.18, blue: 0.50)], // berry
+    ]
+
+    static func make(for label: String, index: Int) -> VibePalette {
+        VibePalette(colors: gradients[index % gradients.count], icon: icon(for: label))
+    }
+
+    private static func icon(for label: String) -> String {
+        let l = label.lowercased()
+        switch true {
+        case l.contains("date"), l.contains("romantic"): return "heart.fill"
+        case l.contains("cafe"), l.contains("coffee"), l.contains("work"): return "cup.and.saucer.fill"
+        case l.contains("rooftop"): return "building.2.fill"
+        case l.contains("late"), l.contains("night"): return "moon.stars.fill"
+        case l.contains("trendy"), l.contains("hot"): return "flame.fill"
+        case l.contains("cozy"): return "flame"
+        case l.contains("waterfront"), l.contains("dumbo"): return "water.waves"
+        case l.contains("group"), l.contains("crawl"), l.contains("dinner"): return "person.3.fill"
+        case l.contains("upscale"), l.contains("michelin"), l.contains("tribeca"): return "star.fill"
+        case l.contains("aesthetic"), l.contains("gallery"), l.contains("art"): return "camera.fill"
+        case l.contains("must-eat"), l.contains("food"), l.contains("flushing"): return "fork.knife"
+        case l.contains("cocktail"), l.contains("bar"): return "wineglass.fill"
+        default: return "sparkles"
         }
     }
 }
