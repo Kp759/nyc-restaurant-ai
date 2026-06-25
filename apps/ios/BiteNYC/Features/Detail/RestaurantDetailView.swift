@@ -56,10 +56,12 @@ struct RestaurantDetailView: View {
                 hero(r)
                 header(r)
                 if !(r.bookingLinks ?? []).isEmpty { bookingSection(r) }
-                if !r.vibeTags.isEmpty { tagsSection(r) }
+                if !r.displayTags.isEmpty { tagsSection(r) }
                 if let summary = r.editorialSummary ?? r.description { summarySection(summary) }
-                if !r.mustTryDishes.isEmpty { dishesSection(r) }
+                socialSection(r)
                 if let clips = r.media?.filter({ $0.mediaType != "photo" }), !clips.isEmpty { clipsSection(clips) }
+                if !r.mustTryDishes.isEmpty { dishesSection(r) }
+                if !r.menuDishes.isEmpty { menuSection(r) }
                 if let photos = r.media?.filter({ $0.mediaType == "photo" }), !photos.isEmpty { gallerySection(photos) }
                 mapSection(r)
                 if let similar = r.similar, !similar.isEmpty { similarSection(similar) }
@@ -87,7 +89,7 @@ struct RestaurantDetailView: View {
     private func header(_ r: Restaurant) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(r.name).font(.title2).fontWeight(.bold)
+                Text(r.name).font(.display(.title2, weight: .bold))
                 Spacer()
                 HealthGradeBadge(grade: r.healthGrade)
             }
@@ -113,18 +115,74 @@ struct RestaurantDetailView: View {
 
     private func tagsSection(_ r: Restaurant) -> some View {
         FlowLayout(spacing: 8) {
-            ForEach(r.vibeTags, id: \.self) { TagChip(text: prettyTag($0)) }
+            ForEach(r.displayTags, id: \.self) { TagChip(text: prettyTag($0)) }
         }
         .padding(.horizontal)
     }
 
     private func summarySection(_ text: String) -> some View {
-        Text(text).font(.body).foregroundStyle(.primary.opacity(0.9)).padding(.horizontal)
+        Text(text)
+            .font(.system(.body, design: .serif))
+            .lineSpacing(3)
+            .foregroundStyle(.primary.opacity(0.9))
+            .padding(.horizontal)
+    }
+
+    private func socialSection(_ r: Restaurant) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Follow").sectionHeaderStyle().padding(.horizontal)
+            HStack(spacing: 10) {
+                ForEach(r.socialLinks) { link in
+                    if let url = URL(string: link.url) {
+                        Link(destination: url) {
+                            HStack(spacing: 6) {
+                                Image(systemName: socialIcon(link.platform))
+                                Text(socialLabel(link.platform)).fontWeight(.semibold)
+                            }
+                            .font(.caption)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background(socialColor(link.platform).opacity(0.14))
+                            .foregroundStyle(socialColor(link.platform))
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    private func socialIcon(_ platform: String) -> String {
+        switch platform {
+        case "instagram": return "camera"
+        case "x": return "bird"
+        case "facebook": return "person.2"
+        default: return "link"
+        }
+    }
+
+    private func socialLabel(_ platform: String) -> String {
+        switch platform {
+        case "instagram": return "Instagram"
+        case "x": return "X"
+        case "facebook": return "Facebook"
+        default: return platform
+        }
+    }
+
+    private func socialColor(_ platform: String) -> Color {
+        switch platform {
+        case "instagram": return Color(red: 0.84, green: 0.18, blue: 0.55)
+        case "x": return .primary
+        case "facebook": return Color(red: 0.09, green: 0.47, blue: 0.95)
+        default: return Theme.accent
+        }
     }
 
     private func dishesSection(_ r: Restaurant) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Must-try dishes").font(.headline).padding(.horizontal)
+            Text("Must-try dishes").sectionHeaderStyle().padding(.horizontal)
             ForEach(r.mustTryDishes) { dish in
                 HStack(alignment: .top, spacing: 12) {
                     RemoteImage(url: dish.photoUrl)
@@ -142,9 +200,31 @@ struct RestaurantDetailView: View {
         }
     }
 
+    private func menuSection(_ r: Restaurant) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Menu").sectionHeaderStyle().padding(.horizontal)
+            ForEach(r.menuDishes) { dish in
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack {
+                        Text(dish.name).font(.subheadline).fontWeight(.semibold)
+                        Spacer()
+                        if let type = dish.dishType, !type.isEmpty {
+                            Text(prettyTag(type)).font(.caption2).foregroundStyle(Theme.accent)
+                        }
+                    }
+                    if let desc = dish.description, !desc.isEmpty {
+                        Text(desc).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+                Divider().padding(.leading).opacity(0.4)
+            }
+        }
+    }
+
     private func clipsSection(_ clips: [MediaItem]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Clips").font(.headline).padding(.horizontal)
+            Text("Reels & clips").sectionHeaderStyle().padding(.horizontal)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(clips) { clip in
@@ -168,7 +248,7 @@ struct RestaurantDetailView: View {
 
     private func gallerySection(_ photos: [MediaItem]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Photos").font(.headline).padding(.horizontal)
+            Text("Photos").sectionHeaderStyle().padding(.horizontal)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(photos) { photo in
@@ -184,7 +264,7 @@ struct RestaurantDetailView: View {
 
     private func mapSection(_ r: Restaurant) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Location").font(.headline).padding(.horizontal)
+            Text("Location").sectionHeaderStyle().padding(.horizontal)
             Map(initialPosition: .region(MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: r.latitude, longitude: r.longitude),
                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -201,19 +281,38 @@ struct RestaurantDetailView: View {
 
     private func similarSection(_ similar: [SimilarRestaurant]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Similar places").font(.headline).padding(.horizontal)
+            Text("Similar places").sectionHeaderStyle().padding(.horizontal)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(similar) { s in
                         NavigationLink(value: RestaurantRoute(slug: s.slug)) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(s.name).font(.subheadline).fontWeight(.semibold).lineLimit(1)
-                                Text(s.neighborhood ?? "").font(.caption).foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 0) {
+                                RemoteImage(url: s.heroImageUrl)
+                                    .frame(width: 190, height: 120)
+                                    .frame(maxWidth: .infinity)
+                                    .clipped()
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(s.name)
+                                        .font(.display(.subheadline, weight: .semibold))
+                                        .lineLimit(1)
+                                    HStack(spacing: 6) {
+                                        Text(s.neighborhood ?? "")
+                                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                        RatingLabel(rating: s.rating, reviewCount: nil)
+                                    }
+                                    if !s.previewTags.isEmpty {
+                                        FlowLayout(spacing: 5) {
+                                            ForEach(s.previewTags, id: \.self) { tag in
+                                                TagChip(text: prettyTag(tag))
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(10)
                             }
-                            .padding()
-                            .frame(width: 170, alignment: .leading)
+                            .frame(width: 190, alignment: .leading)
                             .background(Theme.cardBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .buttonStyle(.plain)
                     }

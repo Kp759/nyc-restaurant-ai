@@ -8,6 +8,7 @@ import { searchRoutes } from "./routes/search.js";
 import { chatRoutes } from "./routes/chat.js";
 import { moderationRoutes } from "./routes/moderation.js";
 import { adminRoutes } from "./routes/admin.js";
+import { photoRoutes } from "./routes/photo.js";
 
 async function main() {
   const app = Fastify({
@@ -34,6 +35,7 @@ async function main() {
   await app.register(chatRoutes);
   await app.register(moderationRoutes);
   await app.register(adminRoutes);
+  await app.register(photoRoutes);
 
   app.setErrorHandler((error: FastifyError, _request, reply) => {
     app.log.error(error);

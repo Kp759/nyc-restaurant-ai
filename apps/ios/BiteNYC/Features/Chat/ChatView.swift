@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ChatView: View {
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var model = ChatViewModel()
     @State private var path = NavigationPath()
 
@@ -30,6 +31,11 @@ struct ChatView: View {
             .navigationTitle("Ask BiteNYC")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: RestaurantRoute.self) { RestaurantDetailView(slug: $0.slug) }
+        }
+        .task(id: router.pendingChatPrompt) {
+            guard let prompt = router.pendingChatPrompt else { return }
+            router.pendingChatPrompt = nil
+            await model.send(prompt)
         }
     }
 

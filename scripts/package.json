@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "import:places": "tsx src/import-google-places.ts",
+    "enrich:ai": "tsx src/enrich-ai.ts",
+    "fetch:reels": "tsx src/fetch-reels.ts",
     "match:yelp": "tsx src/match-yelp.ts",
     "match:health": "tsx src/match-health.ts",
     "embeddings": "tsx src/generate-embeddings.ts",

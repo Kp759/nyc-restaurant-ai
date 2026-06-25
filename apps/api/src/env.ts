@@ -18,6 +18,7 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().default(4000),
   API_HOST: z.string().default("0.0.0.0"),
   API_CORS_ORIGINS: z.string().default("http://localhost:3000"),
+  GOOGLE_PLACES_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

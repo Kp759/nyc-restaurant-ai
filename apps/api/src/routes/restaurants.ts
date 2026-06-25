@@ -71,7 +71,19 @@ export async function restaurantRoutes(app: FastifyInstance) {
         borough: s.borough,
         price_tier: s.price_tier,
         rating: s.rating,
+        hero_image_url: heroImageUrl(s),
+        cuisine_tags: s.cuisine_tags ?? [],
+        vibe_tags: s.vibe_tags ?? [],
       })),
     };
   });
+}
+
+/** First approved photo (thumbnail preferred) for a compact card image. */
+function heroImageUrl(r: any): string | null {
+  const media = r.media ?? [];
+  const photo = media.find((m: any) => m.media_type === "photo");
+  if (photo) return photo.thumbnail_url ?? photo.url ?? null;
+  const anyThumb = media.find((m: any) => m.thumbnail_url);
+  return anyThumb?.thumbnail_url ?? null;
 }

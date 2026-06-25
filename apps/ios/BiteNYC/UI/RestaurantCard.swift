@@ -41,7 +41,7 @@ struct RestaurantCard: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(restaurant.name).font(.headline).lineLimit(1)
+                    Text(restaurant.name).font(.display(.headline)).lineLimit(1)
                     Spacer()
                     HealthGradeBadge(grade: restaurant.healthGrade)
                 }

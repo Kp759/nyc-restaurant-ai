@@ -24,6 +24,9 @@ struct Restaurant: Codable, Identifiable, Hashable {
     var opentableId: String?
     var tockUrl: String?
     var directBookingUrl: String?
+    var instagramUrl: String?
+    var xUrl: String?
+    var facebookUrl: String?
     var healthGrade: String?
     var healthGradeDate: String?
     var healthInspectionScore: Int?
@@ -46,11 +49,49 @@ struct Restaurant: Codable, Identifiable, Hashable {
     }
 
     var mustTryDishes: [Dish] {
-        (dishes ?? []).filter { $0.isMustTry == true }
+        (dishes ?? [])
+            .filter { $0.isMustTry == true }
+            .sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
+    }
+
+    /// Full menu (everything that isn't already surfaced as a must-try).
+    var menuDishes: [Dish] {
+        (dishes ?? [])
+            .filter { $0.isMustTry != true }
+            .sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
+    }
+
+    /// Combined display tags: vibe + occasion + dietary, de-duplicated.
+    var displayTags: [String] {
+        var seen = Set<String>()
+        return (vibeTags + occasionTags + dietaryTags).filter { seen.insert($0).inserted }
     }
 
     static func == (lhs: Restaurant, rhs: Restaurant) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+struct SocialLink: Identifiable, Hashable {
+    let platform: String   // instagram | x | facebook
+    let url: String
+    var id: String { platform }
+}
+
+extension Restaurant {
+    /// Direct social profile if known, else a reliable web search for the
+    /// restaurant on that platform (we never fabricate handles).
+    var socialLinks: [SocialLink] {
+        func search(_ platformQuery: String) -> String {
+            let q = "\(name) \(neighborhood) NYC \(platformQuery)"
+            let enc = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? q
+            return "https://www.google.com/search?q=\(enc)"
+        }
+        return [
+            SocialLink(platform: "instagram", url: instagramUrl ?? search("instagram")),
+            SocialLink(platform: "x", url: xUrl ?? search("x twitter")),
+            SocialLink(platform: "facebook", url: facebookUrl ?? search("facebook")),
+        ]
+    }
 }
 
 struct SimilarRestaurant: Codable, Identifiable, Hashable {
@@ -61,6 +102,16 @@ struct SimilarRestaurant: Codable, Identifiable, Hashable {
     var borough: String?
     var priceTier: Int?
     var rating: Double?
+    var heroImageUrl: String?
+    var cuisineTags: [String]?
+    var vibeTags: [String]?
+
+    /// A couple of representative tags (cuisine first, then vibe).
+    var previewTags: [String] {
+        let cuisine = (cuisineTags ?? []).prefix(1)
+        let vibe = (vibeTags ?? []).prefix(2)
+        return Array(cuisine) + Array(vibe)
+    }
 }
 
 // MARK: - Dish
