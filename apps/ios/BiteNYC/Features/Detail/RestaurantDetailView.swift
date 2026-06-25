@@ -286,14 +286,33 @@ struct RestaurantDetailView: View {
                 HStack(spacing: 12) {
                     ForEach(similar) { s in
                         NavigationLink(value: RestaurantRoute(slug: s.slug)) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(s.name).font(.subheadline).fontWeight(.semibold).lineLimit(1)
-                                Text(s.neighborhood ?? "").font(.caption).foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 0) {
+                                RemoteImage(url: s.heroImageUrl)
+                                    .frame(width: 190, height: 120)
+                                    .frame(maxWidth: .infinity)
+                                    .clipped()
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(s.name)
+                                        .font(.display(.subheadline, weight: .semibold))
+                                        .lineLimit(1)
+                                    HStack(spacing: 6) {
+                                        Text(s.neighborhood ?? "")
+                                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                        RatingLabel(rating: s.rating, reviewCount: nil)
+                                    }
+                                    if !s.previewTags.isEmpty {
+                                        FlowLayout(spacing: 5) {
+                                            ForEach(s.previewTags, id: \.self) { tag in
+                                                TagChip(text: prettyTag(tag))
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(10)
                             }
-                            .padding()
-                            .frame(width: 170, alignment: .leading)
+                            .frame(width: 190, alignment: .leading)
                             .background(Theme.cardBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .buttonStyle(.plain)
                     }

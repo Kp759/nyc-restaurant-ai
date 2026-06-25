@@ -102,6 +102,16 @@ struct SimilarRestaurant: Codable, Identifiable, Hashable {
     var borough: String?
     var priceTier: Int?
     var rating: Double?
+    var heroImageUrl: String?
+    var cuisineTags: [String]?
+    var vibeTags: [String]?
+
+    /// A couple of representative tags (cuisine first, then vibe).
+    var previewTags: [String] {
+        let cuisine = (cuisineTags ?? []).prefix(1)
+        let vibe = (vibeTags ?? []).prefix(2)
+        return Array(cuisine) + Array(vibe)
+    }
 }
 
 // MARK: - Dish
