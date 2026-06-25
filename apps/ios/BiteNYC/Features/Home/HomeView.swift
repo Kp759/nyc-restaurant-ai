@@ -125,10 +125,9 @@ struct HomeView: View {
                 HStack {
                     Text("NYC vibes").sectionHeaderStyle()
                     Spacer()
-                    Text("Swipe to explore").font(.caption2).foregroundStyle(.secondary)
+                    Text("Scroll to zoom").font(.caption2).foregroundStyle(.secondary)
                 }
-                VibeCarousel(categories: vibeCategories)
-                    .padding(.horizontal, -16)   // bleed past the page padding
+                VibeHoneycomb(categories: vibeCategories)
             }
         }
     }
@@ -151,91 +150,100 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Vibe carousel
+// MARK: - Vibe honeycomb
 
-/// Coverflow-style carousel: the centered card zooms up and is highlighted
-/// while neighbors shrink and fade as you swipe (iOS 17 scroll transitions).
-struct VibeCarousel: View {
+/// Apple Watch–style honeycomb: circular vibe bubbles packed in offset rows.
+/// Each bubble grows as it nears the vertical center of the screen and shrinks
+/// toward the edges as the page scrolls.
+struct VibeHoneycomb: View {
     let categories: [VibeCategory]
 
-    private let cardWidth: CGFloat = 210
-    private let cardHeight: CGFloat = 250
+    private let diameter: CGFloat = 96
+    private let hGap: CGFloat = 12
+
+    /// Rows alternate 3 / 2 items for a hexagonal tessellation, while keeping
+    /// each item's original index so the gradient palette stays varied.
+    private var rows: [[(index: Int, category: VibeCategory)]] {
+        var result: [[(Int, VibeCategory)]] = []
+        var i = 0
+        var wide = true
+        while i < categories.count {
+            let count = wide ? 3 : 2
+            let slice = categories[i..<min(i + count, categories.count)]
+            result.append(slice.enumerated().map { (i + $0.offset, $0.element) })
+            i += count
+            wide.toggle()
+        }
+        return result
+    }
 
     var body: some View {
-        GeometryReader { geo in
-            let sidePadding = max((geo.size.width - cardWidth) / 2, 16)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
-                        NavigationLink(value: SearchRoute(query: category.label)) {
-                            VibeCard(
-                                category: category,
-                                palette: VibePalette.make(for: category.label, index: index)
+        let screenCenterY = UIScreen.main.bounds.midY
+        VStack(spacing: -diameter * 0.08) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: hGap) {
+                    ForEach(row, id: \.category.id) { item in
+                        NavigationLink(value: SearchRoute(query: item.category.label)) {
+                            HoneycombBubble(
+                                category: item.category,
+                                palette: VibePalette.make(for: item.category.label, index: item.index),
+                                diameter: diameter,
+                                screenCenterY: screenCenterY
                             )
-                            .frame(width: cardWidth, height: cardHeight)
-                            .scrollTransition(.interactive, axis: .horizontal) { content, phase in
-                                content
-                                    .scaleEffect(phase.isIdentity ? 1.0 : 0.84)
-                                    .opacity(phase.isIdentity ? 1.0 : 0.5)
-                                    .rotation3DEffect(
-                                        .degrees(phase.value * -10),
-                                        axis: (x: 0, y: 1, z: 0),
-                                        perspective: 0.6
-                                    )
-                            }
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .scrollTargetLayout()
-                .padding(.horizontal, sidePadding)
             }
-            .scrollTargetBehavior(.viewAligned)
-            .scrollClipDisabled()
         }
-        .frame(height: cardHeight + 24)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
     }
 }
 
-// MARK: - Vibe card
-
-/// Colorful, tappable tile for an NYC vibe category.
-struct VibeCard: View {
+/// A single circular vibe bubble that scales by its distance from screen center.
+struct HoneycombBubble: View {
     let category: VibeCategory
     let palette: VibePalette
+    let diameter: CGFloat
+    let screenCenterY: CGFloat
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            LinearGradient(colors: palette.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        GeometryReader { geo in
+            let midY = geo.frame(in: .global).midY
+            let distance = abs(midY - screenCenterY)
+            let t = min(distance / 280, 1)            // 0 at center → 1 far away
+            let scale = 1.0 - t * 0.5                  // 1.0 → 0.5
+            let focused = scale > 0.86
 
-            Image(systemName: palette.icon)
-                .font(.system(size: 70, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.16))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .offset(x: 10, y: 12)
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(colors: palette.colors,
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Image(systemName: palette.icon)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                Spacer(minLength: 0)
-                Text(category.label)
-                    .font(.display(.subheadline, weight: .bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let hood = category.neighborhood, !hood.isEmpty {
-                    Label(hood, systemImage: "mappin")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.92))
-                        .lineLimit(1)
+                VStack(spacing: 3) {
+                    Image(systemName: palette.icon)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
+                    if focused {
+                        Text(category.label)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                            .padding(.horizontal, 8)
+                    }
                 }
             }
-            .padding(14)
+            .scaleEffect(scale)
+            .shadow(color: (palette.colors.last ?? .black).opacity(0.3 * scale),
+                    radius: 5, y: 3)
+            .frame(width: diameter, height: diameter)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(height: 132)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: (palette.colors.last ?? .black).opacity(0.28), radius: 6, y: 3)
+        .frame(width: diameter, height: diameter)
     }
 }
 
