@@ -77,12 +77,29 @@ struct ChatView: View {
             }
         } else {
             VStack(alignment: .leading, spacing: 12) {
-                Text(message.text)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(message.isError ? Theme.bad.opacity(0.15) : Theme.cardBackground)
-                    .foregroundStyle(message.isError ? Theme.bad : .primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "fork.knife.circle.fill")
+                            .foregroundStyle(Theme.accent)
+                        Text("BiteNYC")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Theme.accent)
+                    }
+                    Text(message.isError ? AttributedString(message.text) : markdown(message.text))
+                        .font(.callout)
+                        .lineSpacing(5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .foregroundStyle(message.isError ? Theme.bad : .primary)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(message.isError ? Theme.bad.opacity(0.12) : Theme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.accent.opacity(0.12), lineWidth: 1)
+                )
 
                 ForEach(message.results) { result in
                     NavigationLink(value: RestaurantRoute(slug: result.restaurant.slug)) {
@@ -92,6 +109,16 @@ struct ChatView: View {
                 }
             }
         }
+    }
+
+    /// Parses the model's Markdown reply while preserving its line breaks so the
+    /// formatted picks stay easy to skim.
+    private func markdown(_ text: String) -> AttributedString {
+        let options = AttributedString.MarkdownParsingOptions(
+            interpretedSyntax: .inlineOnlyPreservingWhitespace
+        )
+        return (try? AttributedString(markdown: text, options: options))
+            ?? AttributedString(text)
     }
 
     private var inputBar: some View {
