@@ -76,7 +76,6 @@ struct SavedListDetailView: View {
                         }
                     }
                     .onDelete { offsets in
-                        guard let list else { return }
                         offsets.map { list.restaurants[$0].id }.forEach { store.remove($0, from: listId) }
                     }
                 }
