@@ -32,11 +32,16 @@ struct ChatView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: RestaurantRoute.self) { RestaurantDetailView(slug: $0.slug) }
         }
-        .task(id: router.pendingChatPrompt) {
-            guard let prompt = router.pendingChatPrompt else { return }
-            router.pendingChatPrompt = nil
-            await model.send(prompt)
-        }
+        .onAppear { consumePendingPrompt() }
+        .onChange(of: router.pendingChatPrompt) { _, _ in consumePendingPrompt() }
+    }
+
+    /// Sends a prompt handed over from another tab (e.g. the Home hero). Runs in
+    /// an independent Task so clearing `pendingChatPrompt` doesn't cancel it.
+    private func consumePendingPrompt() {
+        guard let prompt = router.pendingChatPrompt else { return }
+        router.pendingChatPrompt = nil
+        Task { await model.send(prompt) }
     }
 
     private var intro: some View {
