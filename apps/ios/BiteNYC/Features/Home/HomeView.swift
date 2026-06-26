@@ -11,7 +11,7 @@ struct HomeView: View {
     @State private var exampleIndex = 0
     @FocusState private var askFocused: Bool
 
-    private let editorialVibeCount = 4
+    private let homeVibeStackCount = 7
     private let classicVibeCount = 4
     private let minimalVibeCount = 6
 
@@ -240,24 +240,27 @@ struct HomeView: View {
     // MARK: - Editorial (light, airy layout)
 
     private var editorialContent: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 24) {
             editorialHeader
             editorialAskBar
-            editorialVibeRail
             editorialQuickRail
+            editorialVibeStack
         }
     }
 
     private var editorialHeader: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text("Bite").font(.display(.title, weight: .bold))
-                Text("NYC").font(.display(.title, weight: .bold)).foregroundStyle(Theme.accent)
+        HStack(spacing: 14) {
+            BiteLogoMark(size: 44)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    Text("Bite").font(.display(.title2, weight: .bold))
+                    Text("NYC").font(.display(.title2, weight: .bold)).foregroundStyle(Theme.accent)
+                }
+                Text("Find the right spot by vibe, dish, or neighborhood.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text("Find the right spot by vibe, dish, or neighborhood.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -335,26 +338,23 @@ struct HomeView: View {
         }
     }
 
-    private var editorialVibeRail: some View {
-        let shown = Array(displayVibeCategories.prefix(editorialVibeCount))
+    private var editorialVibeStack: some View {
+        let shown = Array(displayVibeCategories.prefix(homeVibeStackCount))
         return VStack(alignment: .leading, spacing: 12) {
             nycVibesSectionHeader(
-                showSeeAll: displayVibeCategories.count > editorialVibeCount,
+                showSeeAll: displayVibeCategories.count > homeVibeStackCount,
                 style: .editorial
             )
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(Array(shown.enumerated()), id: \.element.id) { index, category in
-                        Button { ask(category.label) } label: {
-                            EditorialVibeCard(
-                                category: category,
-                                palette: VibePalette.make(for: category.label, index: index)
-                            )
-                        }
-                        .buttonStyle(CardPressStyle())
-                    }
+            ForEach(Array(shown.enumerated()), id: \.element.id) { index, category in
+                Button { ask(category.label) } label: {
+                    EditorialVibeCard(
+                        category: category,
+                        palette: VibePalette.make(for: category.label, index: index),
+                        fullWidth: true
+                    )
                 }
+                .buttonStyle(CardPressStyle())
             }
         }
     }
@@ -553,6 +553,7 @@ struct EditorialPill: View {
 struct EditorialVibeCard: View {
     let category: VibeCategory
     let palette: VibePalette
+    var fullWidth: Bool = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -595,7 +596,8 @@ struct EditorialVibeCard: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
         }
-        .frame(width: 252, height: 92)
+        .frame(maxWidth: fullWidth ? .infinity : nil)
+        .frame(width: fullWidth ? nil : 252, height: 92)
         .background(
             LinearGradient(colors: palette.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
         )

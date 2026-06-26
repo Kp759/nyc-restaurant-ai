@@ -19,16 +19,11 @@ targets:
     platform: iOS
     sources:
       - path: BiteNYC
-    entitlements:
-      path: BiteNYC/BiteNYC.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bitenyc.app
         INFOPLIST_FILE: BiteNYC/Info.plist
-        CODE_SIGN_ENTITLEMENTS: BiteNYC/BiteNYC.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_PREVIEWS: YES
         TARGETED_DEVICE_FAMILY: "1,2"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    capabilities:
-      Sign In with Apple: true

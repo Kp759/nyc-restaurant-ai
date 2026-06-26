@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Animated launch screen shown once on cold start. The logomark fades + scales
-/// in, a shimmer sweeps the wordmark, then the whole view hands off to the app.
+/// Animated launch screen — bright gradient, bitten **B** logomark, wordmark fade-in.
 struct SplashView: View {
     var onFinished: () -> Void
 
@@ -13,47 +12,50 @@ struct SplashView: View {
     @State private var ringScale: CGFloat = 0.4
     @State private var ringOpacity: Double = 0.6
 
+    private var splashGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 1.00, green: 0.55, blue: 0.18),
+                Color(red: 1.00, green: 0.32, blue: 0.34),
+                Color(red: 0.96, green: 0.18, blue: 0.58),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 1.0, green: 0.45, blue: 0.20),
-                    Color(red: 1.0, green: 0.27, blue: 0.30)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            splashGradient.ignoresSafeArea()
 
-            VStack(spacing: 20) {
+            VStack(spacing: 22) {
                 ZStack {
                     Circle()
-                        .stroke(Color.white.opacity(0.5), lineWidth: 2)
-                        .frame(width: 180, height: 180)
+                        .stroke(Color.white.opacity(0.55), lineWidth: 2)
+                        .frame(width: 190, height: 190)
                         .scaleEffect(ringScale)
                         .opacity(ringOpacity)
 
-                    Image("AppLogo")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 150, height: 150)
-                        .clipShape(Circle())
-                        .overlay(Circle().strokeBorder(.white.opacity(0.9), lineWidth: 3))
-                        .shadow(color: .black.opacity(0.18), radius: 14, y: 8)
+                    BiteLogoMark(size: 156, showRing: false)
                         .scaleEffect(logoScale)
                         .opacity(logoOpacity)
                 }
 
-                VStack(spacing: 6) {
-                    Text("BiteNYC")
-                        .font(.system(.largeTitle, design: .serif).weight(.bold))
-                        .foregroundStyle(.white)
-                        .offset(y: wordmarkOffset)
-                        .opacity(wordmarkOpacity)
+                VStack(spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        Text("Bite")
+                            .font(.system(.largeTitle, design: .serif).weight(.bold))
+                            .foregroundStyle(.white)
+                        Text("NYC")
+                            .font(.system(.largeTitle, design: .serif).weight(.bold))
+                            .foregroundStyle(.white.opacity(0.92))
+                    }
+                    .offset(y: wordmarkOffset)
+                    .opacity(wordmarkOpacity)
 
                     Text("Your NYC dining concierge")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .foregroundStyle(.white.opacity(0.88))
                         .opacity(taglineOpacity)
                 }
             }

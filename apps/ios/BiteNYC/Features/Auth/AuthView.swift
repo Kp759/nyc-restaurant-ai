@@ -17,6 +17,7 @@ struct AuthView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var appleNonce = ""
+    private let appleSignIn = AppleSignInController()
 
     private var accentGradient: LinearGradient {
         LinearGradient(
@@ -75,7 +76,9 @@ struct AuthView: View {
     }
 
     private var header: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
+            BiteLogoMark(size: 72)
+
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text("Bite").font(.display(.largeTitle, weight: .bold))
                 Text("NYC").font(.display(.largeTitle, weight: .bold)).foregroundStyle(Theme.accent)
@@ -103,30 +106,26 @@ struct AuthView: View {
 
     private var authButtons: some View {
         VStack(spacing: 12) {
-            SignInWithAppleButton(mode == .login ? .signIn : .signUp) { request in
-                let nonce = SupabaseAuthClient.randomNonce()
-                appleNonce = nonce
-                request.requestedScopes = [.fullName, .email]
-                request.nonce = SupabaseAuthClient.sha256(nonce)
-            } onCompletion: { result in
-                switch result {
-                case let .success(authorization):
-                    if let credential = authorization.credential as? ASAuthorizationAppleIDCredential {
+            AuthBrandButton(
+                title: "Continue with Apple",
+                icon: "apple.logo",
+                style: .apple
+            ) {
+                appleSignIn.signIn { result in
+                    switch result {
+                    case let .success((credential, nonce)):
+                        appleNonce = nonce
                         Task {
-                            await auth.signInWithApple(credential, rawNonce: appleNonce)
+                            await auth.signInWithApple(credential, rawNonce: nonce)
                             auth.applySessionToAccount(account)
                         }
-                    }
-                case let .failure(error):
-                    if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
-                        auth.errorMessage = error.localizedDescription
+                    case let .failure(error):
+                        if (error as NSError).code != ASAuthorizationError.canceled.rawValue {
+                            auth.errorMessage = error.localizedDescription
+                        }
                     }
                 }
             }
-            .signInWithAppleButtonStyle(.white)
-            .frame(height: 52)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
 
             AuthBrandButton(
                 title: "Continue with Google",
@@ -230,10 +229,16 @@ struct AuthView: View {
 }
 
 enum AuthBrandStyle {
-    case google, email
+    case apple, google, email
 
     var background: LinearGradient {
         switch self {
+        case .apple:
+            return LinearGradient(
+                colors: [Color(white: 0.14), Color(white: 0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         case .google:
             return LinearGradient(
                 colors: [
@@ -257,6 +262,7 @@ enum AuthBrandStyle {
 
     var shadowColor: Color {
         switch self {
+        case .apple: return .black
         case .google: return Color(red: 0.26, green: 0.52, blue: 0.96)
         case .email: return Theme.accent
         }
