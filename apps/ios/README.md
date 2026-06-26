@@ -41,7 +41,7 @@ BiteNYC/
 ├── Networking/     # Codable models + async URLSession APIClient
 ├── UI/             # shared components (cards, chips, flow layout, badges)
 └── Features/
-    ├── Home/       # Ask-AI entry, prompt chips, NYC vibe categories
+    ├── Home/       # Ask-AI entry, occasion chips, neighborhood presets
     ├── Search/     # grounded AI search results
     ├── Explore/    # list/map toggle + filters
     ├── Detail/     # hero, dishes, booking, clips, gallery, map, similar

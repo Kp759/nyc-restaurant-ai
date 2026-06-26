@@ -20,6 +20,11 @@ final class AppRouter: ObservableObject {
         selectedTab = .chat
     }
 
+    /// Open the Explore tab for full neighborhood browse and filters.
+    func openExplore() {
+        selectedTab = .explore
+    }
+
     /// Present the reservation flow for a restaurant from anywhere in the app.
     func reserve(_ restaurant: Restaurant) {
         reservationTarget = restaurant

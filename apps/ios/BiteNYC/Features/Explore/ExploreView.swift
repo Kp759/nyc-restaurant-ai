@@ -15,6 +15,7 @@ struct ExploreView: View {
             VStack(spacing: 0) {
                 modePicker
                 quickFilterBar
+                curatedPicksBar
                 Divider()
                 content
             }
@@ -86,6 +87,48 @@ struct ExploreView: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var curatedPicksBar: some View {
+        if !model.vibeCategories.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Explore neighborhoods")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(model.vibeCategories) { category in
+                            Button { router.askInChat(category.label) } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    if let hood = category.neighborhood, !hood.isEmpty {
+                                        Text(hood)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Text(category.label)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: 180, alignment: .leading)
+                                .background(Theme.chipBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
             .padding(.bottom, 8)
         }
     }

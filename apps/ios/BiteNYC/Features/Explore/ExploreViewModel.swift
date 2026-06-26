@@ -11,6 +11,7 @@ final class ExploreViewModel: ObservableObject {
     @Published var boroughs: [String] = []
     @Published var neighborhoods: [Neighborhood] = []
     @Published var vibeTags: [String] = []
+    @Published var vibeCategories: [VibeCategory] = []
 
     // Active filters
     @Published var borough: String? { didSet { if borough != oldValue { neighborhood = nil } } }
@@ -46,6 +47,7 @@ final class ExploreViewModel: ObservableObject {
             let (f, h) = try await (filters, hoods)
             boroughs = f.boroughs
             vibeTags = f.vibeTags
+            vibeCategories = f.vibeCategories
             neighborhoods = h
             didLoadMetadata = true
         } catch {
