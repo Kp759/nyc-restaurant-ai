@@ -1,73 +1,76 @@
 import SwiftUI
 
-/// Circular logomark: serif **B** with a bite taken out of the top-right edge.
+/// Circular logomark: bold sans-serif **B** with a scalloped bite on the right side.
+/// Orange circle + black letter, matching the Bite brand reference.
 struct BiteLogoMark: View {
     var size: CGFloat = 120
     var showRing: Bool = false
 
-    private var biteGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color(red: 1.00, green: 0.48, blue: 0.26),
-                Color(red: 1.00, green: 0.28, blue: 0.38),
-                Color(red: 0.96, green: 0.20, blue: 0.58),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    private var logoOrange: Color {
+        Color(red: 1.00, green: 0.46, blue: 0.10)
     }
 
     var body: some View {
         ZStack {
             if showRing {
                 Circle()
-                    .stroke(Color.white.opacity(0.45), lineWidth: max(2, size * 0.014))
-                    .frame(width: size * 1.12, height: size * 1.12)
+                    .stroke(Color.black.opacity(0.18), lineWidth: max(2, size * 0.014))
+                    .frame(width: size * 1.14, height: size * 1.14)
             }
 
             ZStack {
                 Circle()
-                    .fill(biteGradient)
+                    .fill(logoOrange)
 
-                Text("B")
-                    .font(.system(size: size * 0.52, weight: .heavy, design: .serif))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                Circle()
+                    .strokeBorder(Color.black.opacity(0.14), lineWidth: max(1.5, size * 0.012))
+
+                ZStack {
+                    Text("B")
+                        .font(.system(size: size * 0.58, weight: .black, design: .rounded))
+                        .foregroundStyle(.black)
+                        .offset(x: -size * 0.02)
+
+                    biteNotches
+                }
             }
             .frame(width: size, height: size)
-            .mask(biteMask)
-            .overlay(
-                Circle()
-                    .strokeBorder(.white.opacity(0.88), lineWidth: max(2.5, size * 0.022))
-            )
-            .shadow(color: Color(red: 1.0, green: 0.25, blue: 0.35).opacity(0.45), radius: size * 0.12, y: size * 0.06)
+            .shadow(color: logoOrange.opacity(0.55), radius: size * 0.10, y: size * 0.05)
+            .shadow(color: .black.opacity(0.18), radius: size * 0.06, y: size * 0.03)
         }
         .frame(width: size, height: size)
     }
 
-    private var biteMask: some View {
-        ZStack {
+    /// Three scalloped notches eating into the right side of the **B** (teeth-mark style).
+    private var biteNotches: some View {
+        let notch = size * 0.115
+        return ZStack {
             Circle()
+                .fill(logoOrange)
+                .frame(width: notch, height: notch)
+                .offset(x: size * 0.19, y: -size * 0.13)
+
             Circle()
-                .frame(width: size * 0.34, height: size * 0.34)
-                .offset(x: size * 0.30, y: -size * 0.30)
-                .blendMode(.destinationOut)
+                .fill(logoOrange)
+                .frame(width: notch * 0.96, height: notch * 0.96)
+                .offset(x: size * 0.235, y: -size * 0.025)
+
+            Circle()
+                .fill(logoOrange)
+                .frame(width: notch * 0.92, height: notch * 0.92)
+                .offset(x: size * 0.19, y: size * 0.075)
         }
-        .compositingGroup()
     }
 }
 
 #Preview {
-    ZStack {
-        LinearGradient(
-            colors: [
-                Color(red: 1.0, green: 0.52, blue: 0.22),
-                Color(red: 0.98, green: 0.18, blue: 0.55),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
+    VStack(spacing: 32) {
         BiteLogoMark(size: 160, showRing: true)
+            .padding(40)
+            .background(Color.black)
+
+        BiteLogoMark(size: 72)
+            .padding(24)
+            .background(Color(.systemBackground))
     }
 }

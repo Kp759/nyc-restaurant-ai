@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Animated launch screen — bright gradient, bitten **B** logomark, wordmark fade-in.
+/// Animated launch screen — black + orange brand, bitten **B** logomark.
 struct SplashView: View {
     var onFinished: () -> Void
 
@@ -12,31 +12,32 @@ struct SplashView: View {
     @State private var ringScale: CGFloat = 0.4
     @State private var ringOpacity: Double = 0.6
 
-    private var splashGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color(red: 1.00, green: 0.55, blue: 0.18),
-                Color(red: 1.00, green: 0.32, blue: 0.34),
-                Color(red: 0.96, green: 0.18, blue: 0.58),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    private var brandOrange: Color {
+        Color(red: 1.00, green: 0.46, blue: 0.10)
     }
 
     var body: some View {
         ZStack {
-            splashGradient.ignoresSafeArea()
+            LinearGradient(
+                colors: [
+                    Color.black,
+                    Color(red: 0.10, green: 0.08, blue: 0.07),
+                    Color(red: 0.18, green: 0.09, blue: 0.04),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            VStack(spacing: 22) {
+            VStack(spacing: 24) {
                 ZStack {
                     Circle()
-                        .stroke(Color.white.opacity(0.55), lineWidth: 2)
-                        .frame(width: 190, height: 190)
+                        .stroke(brandOrange.opacity(0.45), lineWidth: 2)
+                        .frame(width: 196, height: 196)
                         .scaleEffect(ringScale)
                         .opacity(ringOpacity)
 
-                    BiteLogoMark(size: 156, showRing: false)
+                    BiteLogoMark(size: 160, showRing: true)
                         .scaleEffect(logoScale)
                         .opacity(logoOpacity)
                 }
@@ -44,18 +45,18 @@ struct SplashView: View {
                 VStack(spacing: 8) {
                     HStack(alignment: .firstTextBaseline, spacing: 0) {
                         Text("Bite")
-                            .font(.system(.largeTitle, design: .serif).weight(.bold))
+                            .font(.system(.largeTitle, design: .rounded).weight(.black))
                             .foregroundStyle(.white)
                         Text("NYC")
-                            .font(.system(.largeTitle, design: .serif).weight(.bold))
-                            .foregroundStyle(.white.opacity(0.92))
+                            .font(.system(.largeTitle, design: .rounded).weight(.black))
+                            .foregroundStyle(brandOrange)
                     }
                     .offset(y: wordmarkOffset)
                     .opacity(wordmarkOpacity)
 
                     Text("Your NYC dining concierge")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.88))
+                        .foregroundStyle(.white.opacity(0.72))
                         .opacity(taglineOpacity)
                 }
             }

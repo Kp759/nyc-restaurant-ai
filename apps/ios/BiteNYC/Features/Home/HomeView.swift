@@ -249,18 +249,15 @@ struct HomeView: View {
     }
 
     private var editorialHeader: some View {
-        HStack(spacing: 14) {
-            BiteLogoMark(size: 44)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text("Bite").font(.display(.title2, weight: .bold))
-                    Text("NYC").font(.display(.title2, weight: .bold)).foregroundStyle(Theme.accent)
-                }
-                Text("Find the right spot by vibe, dish, or neighborhood.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                Text("Bite").font(.display(.title, weight: .bold))
+                Text("NYC").font(.display(.title, weight: .bold)).foregroundStyle(Theme.accent)
             }
+            Text("Find the right spot by vibe, dish, or neighborhood.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
