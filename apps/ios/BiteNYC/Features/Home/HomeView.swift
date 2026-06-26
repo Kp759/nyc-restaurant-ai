@@ -32,27 +32,20 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            GeometryReader { geo in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 28) {
-                        editorialHeader
-
-                        Spacer(minLength: topBreathingRoom(screenHeight: geo.size.height))
-
-                        editorialAskBar
-
-                        editorialQuickRail
-                        editorialVibeStack
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 32)
-                    .frame(minHeight: geo.size.height, alignment: .top)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    editorialHeader
+                    editorialQuickRail
+                    editorialAskBar
+                    editorialVibeStack
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if askFocused { askFocused = false }
-                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 32)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if askFocused { askFocused = false }
             }
             .background(Color(.systemBackground))
             .navigationTitle("")
@@ -63,15 +56,6 @@ struct HomeView: View {
             }
             .task { await loadVibeCategories() }
         }
-    }
-
-    /// Pushes the ask card toward the vertical center / thumb zone.
-    private func topBreathingRoom(screenHeight: CGFloat) -> CGFloat {
-        let header: CGFloat = 72
-        let askCard: CGFloat = 210
-        let peekBelow: CGFloat = 64
-        let centered = (screenHeight - header - askCard - peekBelow) / 2
-        return max(44, centered)
     }
 
     // MARK: - Layout picker (compare layouts)
@@ -278,58 +262,64 @@ struct HomeView: View {
     }
 
     private var editorialAskBar: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 10) {
                 Image(systemName: "sparkles")
-                    .font(.title3.weight(.semibold))
+                    .font(.title2.weight(.semibold))
                     .foregroundStyle(Theme.accent)
                 Text("Ask BiteNYC")
-                    .font(.display(.title3, weight: .bold))
+                    .font(.display(.title2, weight: .bold))
             }
 
-            HStack(alignment: .top, spacing: 12) {
-                TextField(
-                    "",
-                    text: $queryText,
-                    prompt: Text(examples[exampleIndex]).foregroundColor(.secondary),
-                    axis: .vertical
-                )
-                .font(.title3)
-                .lineLimit(2...5)
-                .focused($askFocused)
-                .submitLabel(.send)
-                .onSubmit(submit)
-
-                Button(action: submit) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.largeTitle)
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, Theme.accent)
+            ZStack(alignment: .topLeading) {
+                if queryText.isEmpty && !askFocused {
+                    RollingPromptRoller(
+                        examples: examples,
+                        index: $exampleIndex,
+                        isPaused: askFocused || !queryText.isEmpty
+                    )
+                    .allowsHitTesting(false)
                 }
-                .disabled(queryText.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                TextField("", text: $queryText, axis: .vertical)
+                    .font(.title2)
+                    .lineLimit(3...6)
+                    .focused($askFocused)
+                    .submitLabel(.send)
+                    .onSubmit(submit)
+                    .opacity(queryText.isEmpty && !askFocused ? 0.015 : 1)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
+            .frame(minHeight: 72, alignment: .topLeading)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 20)
             .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 20)
                     .strokeBorder(
                         askFocused ? Theme.accent.opacity(0.55) : Theme.accent.opacity(0.2),
                         lineWidth: askFocused ? 2 : 1
                     )
             )
+            .contentShape(RoundedRectangle(cornerRadius: 20))
+            .onTapGesture { askFocused = true }
 
-            Text("Describe a vibe, dish, neighborhood, or occasion.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Button(action: submit) {
+                Label("Ask", systemImage: "sparkles")
+                    .font(.headline.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Theme.accent)
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+                    .shadow(color: Theme.accent.opacity(0.28), radius: 8, y: 4)
+            }
         }
-        .padding(16)
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: 26)
                 .fill(Theme.accent.opacity(0.08))
         )
-        .onReceive(rotation) { _ in rotateExamplesIfNeeded() }
     }
 
     private var editorialQuickRail: some View {
@@ -528,8 +518,9 @@ struct HomeView: View {
 
     private func submit() {
         let trimmed = queryText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        router.askInChat(trimmed)
+        let prompt = trimmed.isEmpty ? examples[exampleIndex] : trimmed
+        guard !prompt.isEmpty else { return }
+        router.askInChat(prompt)
         queryText = ""
         askFocused = false
     }

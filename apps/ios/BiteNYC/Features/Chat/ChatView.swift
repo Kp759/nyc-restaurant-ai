@@ -26,8 +26,9 @@ struct ChatView: View {
                     .onChange(of: model.messages.count) {
                         if let last = model.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
                     }
-                    .onChange(of: model.messages.last?.text) { _, _ in
-                        if let last = model.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                    .onChange(of: model.messages.last?.isStreaming) { _, streaming in
+                        guard streaming == false, let last = model.messages.last else { return }
+                        proxy.scrollTo(last.id, anchor: .bottom)
                     }
                     .onChange(of: model.messages.last?.visibleResultCount) { _, _ in
                         if let last = model.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
@@ -35,19 +36,17 @@ struct ChatView: View {
                 }
                 inputBar
             }
-            .navigationTitle("Ask BiteNYC")
+            .navigationTitle("Ask me")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        inputFocused = false
                         router.selectedTab = .home
                     } label: {
                         Label("Home", systemImage: "chevron.left")
                     }
                 }
             }
-            .keyboardDismissToolbar(focused: $inputFocused)
             .navigationDestination(for: RestaurantRoute.self) { RestaurantDetailView(slug: $0.slug) }
         }
         .onAppear { consumePendingPrompt() }
@@ -108,13 +107,7 @@ struct ChatView: View {
                                 .tint(Theme.accent)
                         }
                     }
-                    Text(message.isError ? AttributedString(message.text) : markdown(message.text))
-                        .font(.callout)
-                        .lineSpacing(5)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .foregroundStyle(message.isError ? Theme.bad : .primary)
-                        .animation(.easeOut(duration: 0.12), value: message.text)
+                    assistantMessageBody(message)
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -136,6 +129,25 @@ struct ChatView: View {
         }
     }
 
+    @ViewBuilder
+    private func assistantMessageBody(_ message: ChatMessage) -> some View {
+        Group {
+            if message.isError {
+                Text(message.text)
+            } else if message.isStreaming {
+                Text(message.text)
+            } else {
+                Text(markdown(message.text))
+                    .transaction { $0.animation = nil }
+            }
+        }
+        .font(.callout)
+        .lineSpacing(5)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .textSelection(.enabled)
+        .foregroundStyle(message.isError ? Theme.bad : .primary)
+    }
+
     /// Parses the model's Markdown reply while preserving its line breaks so the
     /// formatted picks stay easy to skim.
     private func markdown(_ text: String) -> AttributedString {
@@ -148,15 +160,6 @@ struct ChatView: View {
 
     private var inputBar: some View {
         HStack(spacing: 10) {
-            Button {
-                inputFocused = false
-            } label: {
-                Image(systemName: "keyboard.chevron.compact.down")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-            .accessibilityLabel("Dismiss keyboard")
-
             TextField("Ask for a vibe, dish, or neighborhood…", text: $model.input, axis: .vertical)
                 .lineLimit(1...4)
                 .padding(10)
@@ -164,8 +167,8 @@ struct ChatView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18))
                 .focused($inputFocused)
                 .submitLabel(.send)
-                .onSubmit { Task { await model.send() } }
-            Button { Task { await model.send() } } label: {
+                .onSubmit { Task { await submitFromInputBar() } }
+            Button { Task { await submitFromInputBar() } } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.title)
             }
             .tint(Theme.accent)
@@ -174,5 +177,10 @@ struct ChatView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(.bar)
+    }
+
+    private func submitFromInputBar() async {
+        await model.send()
+        inputFocused = false
     }
 }

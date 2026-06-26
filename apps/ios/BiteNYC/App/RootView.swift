@@ -14,7 +14,7 @@ struct RootView: View {
                 .tag(AppRouter.Tab.explore)
 
             ChatView()
-                .tabItem { Label("Ask AI", systemImage: "bubble.left.and.text.bubble.right") }
+                .tabItem { Label("Ask me", systemImage: "bubble.left.and.text.bubble.right") }
                 .tag(AppRouter.Tab.chat)
 
             AccountView()

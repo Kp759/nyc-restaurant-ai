@@ -90,11 +90,12 @@ final class ChatViewModel: ObservableObject {
             if Task.isCancelled { return }
             if index > 0 { built += " " }
             built += word
-            updateMessage(messageID) { $0.text = built }
-            try? await Task.sleep(nanoseconds: 40_000_000)
+            if index % 2 == 0 || index == words.count - 1 {
+                updateMessage(messageID) { $0.text = built }
+            }
+            try? await Task.sleep(nanoseconds: 45_000_000)
         }
-
-        updateMessage(messageID) { $0.isStreaming = false }
+        updateMessage(messageID) { $0.text = text; $0.isStreaming = false }
 
         for count in 1...results.count {
             if Task.isCancelled { return }
