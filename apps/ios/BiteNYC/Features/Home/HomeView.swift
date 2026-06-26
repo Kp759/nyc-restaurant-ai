@@ -13,6 +13,7 @@ struct HomeView: View {
     @FocusState private var askFocused: Bool
 
     private let vibePreviewCount = 4
+    private let editorialVibeCount = 4
 
     private let examples = [
         "Cozy date-night spot in the West Village…",
@@ -292,47 +293,57 @@ struct HomeView: View {
     }
 
     private var editorialAskBar: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Ask anything")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .tracking(0.8)
-
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 Image(systemName: "sparkles")
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(Theme.accent)
-                    .font(.body.weight(.semibold))
+                Text("Ask BiteNYC")
+                    .font(.display(.title3, weight: .bold))
+            }
 
+            HStack(alignment: .top, spacing: 12) {
                 TextField(
                     "",
                     text: $queryText,
                     prompt: Text(examples[exampleIndex]).foregroundColor(.secondary),
                     axis: .vertical
                 )
-                .font(.body)
-                .lineLimit(1...3)
+                .font(.title3)
+                .lineLimit(2...5)
                 .focused($askFocused)
                 .submitLabel(.send)
                 .onSubmit(submit)
 
                 Button(action: submit) {
                     Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
+                        .font(.largeTitle)
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(.white, Theme.accent)
                 }
                 .disabled(queryText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(Theme.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(askFocused ? Theme.accent.opacity(0.5) : Color.clear, lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: 18)
+                    .strokeBorder(
+                        askFocused ? Theme.accent.opacity(0.55) : Theme.accent.opacity(0.2),
+                        lineWidth: askFocused ? 2 : 1
+                    )
             )
+
+            Text("Describe a vibe, dish, neighborhood, or occasion.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Theme.accent.opacity(0.08))
+        )
         .onReceive(rotation) { _ in rotateExamplesIfNeeded() }
     }
 
@@ -358,20 +369,23 @@ struct HomeView: View {
     @ViewBuilder
     private var editorialVibeRail: some View {
         if !vibeCategories.isEmpty {
+            let shown = Array(vibeCategories.prefix(editorialVibeCount))
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("NYC vibes")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text("Swipe")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                    if vibeCategories.count > editorialVibeCount {
+                        Text("\(shown.count) of \(vibeCategories.count)")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Array(vibeCategories.enumerated()), id: \.element.id) { index, category in
+                    HStack(spacing: 14) {
+                        ForEach(Array(shown.enumerated()), id: \.element.id) { index, category in
                             NavigationLink(value: SearchRoute(query: category.label)) {
                                 EditorialVibeCard(
                                     category: category,
@@ -546,45 +560,64 @@ struct EditorialPill: View {
     }
 }
 
-/// Compact portrait card for the editorial vibe rail.
+/// Landscape editorial card — accent stripe, emoji badge, serif title.
 struct EditorialVibeCard: View {
     let category: VibeCategory
     let palette: VibePalette
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: palette.colors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        HStack(spacing: 0) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(LinearGradient(colors: palette.colors, startPoint: .top, endPoint: .bottom))
+                .frame(width: 4)
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text(palette.emoji)
-                    .font(.title2)
-                    .padding(.top, 14)
-                    .padding(.leading, 14)
-                Spacer(minLength: 0)
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: palette.colors.map { $0.opacity(0.85) },
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Text(palette.emoji).font(.title2)
+                }
+                .frame(width: 48, height: 48)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    if let hood = category.neighborhood, !hood.isEmpty {
+                        Text(hood.uppercased())
+                            .font(.caption2.weight(.bold))
+                            .tracking(0.8)
+                            .foregroundStyle(Theme.accent)
+                    }
                     Text(category.label)
                         .font(.display(.subheadline, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let hood = category.neighborhood, !hood.isEmpty {
-                        Text(hood)
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.85))
-                            .lineLimit(1)
-                    }
                 }
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.black.opacity(0.12))
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .padding(8)
+                    .background(Theme.chipBackground)
+                    .clipShape(Circle())
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
         }
-        .frame(width: 132, height: 168)
+        .frame(width: 248, height: 88)
+        .background(Theme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
     }
 }
 
