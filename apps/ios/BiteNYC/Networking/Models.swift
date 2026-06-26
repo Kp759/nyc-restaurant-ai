@@ -24,6 +24,8 @@ struct Restaurant: Codable, Identifiable, Hashable {
     var opentableId: String?
     var tockUrl: String?
     var directBookingUrl: String?
+    var googlePlaceId: String?
+    var phone: String?
     var instagramUrl: String?
     var xUrl: String?
     var facebookUrl: String?
@@ -54,11 +56,54 @@ struct Restaurant: Codable, Identifiable, Hashable {
             .sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
     }
 
-    /// Full menu (everything that isn't already surfaced as a must-try).
+    var mustTryFood: [Dish] {
+        mustTryDishes.filter { !Self.isDrinkDish($0) }
+    }
+
+    var mustTryDrinks: [Dish] {
+        mustTryDishes.filter { Self.isDrinkDish($0) }
+    }
+
+    /// All dishes for the dedicated menu screen.
+    var allMenuDishes: [Dish] {
+        (dishes ?? []).sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
+    }
+
+    /// Non–must-try items (shown on the full menu screen only).
     var menuDishes: [Dish] {
         (dishes ?? [])
             .filter { $0.isMustTry != true }
             .sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
+    }
+
+    /// Phone number for dialing (never opens Maps).
+    var dialPhoneNumber: String? {
+        if let phone, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return phone
+        }
+        if let tel = bookingLinks?.first(where: { $0.provider == "phone" })?.url {
+            return tel
+                .replacingOccurrences(of: "tel:", with: "")
+                .replacingOccurrences(of: "tel://", with: "")
+        }
+        return nil
+    }
+
+    /// `tel:` link when a phone number is known.
+    var callURL: URL? {
+        guard let raw = dialPhoneNumber else { return nil }
+        let digits = raw.filter { $0.isNumber || $0 == "+" }
+        guard digits.count >= 7 else { return nil }
+        return URL(string: "tel:\(digits)")
+    }
+
+    var hasCallAction: Bool { callURL != nil }
+
+    private static func isDrinkDish(_ dish: Dish) -> Bool {
+        switch (dish.dishType ?? "").lowercased() {
+        case "drink", "cocktail", "beverage", "wine", "beer": return true
+        default: return false
+        }
     }
 
     /// Combined display tags: vibe + occasion + dietary, de-duplicated.

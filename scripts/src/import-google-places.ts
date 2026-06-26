@@ -22,6 +22,7 @@ const FIELD_MASK = [
   "places.editorialSummary",
   "places.photos",
   "places.websiteUri",
+  "places.nationalPhoneNumber",
 ].join(",");
 
 const MAX_PHOTOS = 5;
@@ -60,8 +61,7 @@ async function textSearch(query: string) {
 
 /** Builds a proxied photo URL so the Google API key is never exposed to clients. */
 function buildPhotoUrl(resourceName: string, maxWidth = 1200): string {
-  const base = scriptEnv.apiPublicUrl.replace(/\/$/, "");
-  return `${base}/photo?name=${encodeURIComponent(resourceName)}&maxwidth=${maxWidth}`;
+  return `/photo?name=${encodeURIComponent(resourceName)}&maxwidth=${maxWidth}`;
 }
 
 async function main() {
@@ -118,6 +118,7 @@ async function main() {
         review_count: p.userRatingCount ?? 0,
         editorial_summary: p.editorialSummary?.text ?? null,
         google_place_id: placeId,
+        phone: p.nationalPhoneNumber ?? null,
         direct_booking_url: p.websiteUri ?? null,
         status: publish ? ("published" as const) : ("draft" as const),
       };

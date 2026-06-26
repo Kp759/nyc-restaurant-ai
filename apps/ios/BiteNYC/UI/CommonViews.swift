@@ -64,7 +64,7 @@ struct RemoteImage: View {
     var contentMode: ContentMode = .fill
 
     var body: some View {
-        AsyncImage(url: url.flatMap(URL.init(string:))) { phase in
+        AsyncImage(url: MediaURLResolver.resolve(url)) { phase in
             switch phase {
             case let .success(image):
                 image.resizable().aspectRatio(contentMode: contentMode)

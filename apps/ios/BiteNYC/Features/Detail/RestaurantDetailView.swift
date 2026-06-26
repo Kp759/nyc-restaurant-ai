@@ -7,6 +7,7 @@ struct RestaurantDetailView: View {
     @EnvironmentObject private var saved: SavedListsStore
     @EnvironmentObject private var account: AccountStore
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.openURL) private var openURL
     @State private var restaurant: Restaurant?
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -67,8 +68,8 @@ struct RestaurantDetailView: View {
                 if let summary = r.editorialSummary ?? r.description { summarySection(summary) }
                 socialSection(r)
                 if let clips = r.media?.filter({ $0.mediaType != "photo" }), !clips.isEmpty { clipsSection(clips) }
-                if !r.mustTryDishes.isEmpty { dishesSection(r) }
-                if let dishes = r.dishes, !dishes.isEmpty { menuSection(dishes) }
+                if !r.mustTryDishes.isEmpty { mustTrySection(r) }
+                if !r.allMenuDishes.isEmpty { menuLinkSection(r) }
                 if let photos = r.media?.filter({ $0.mediaType == "photo" }), !photos.isEmpty { gallerySection(photos) }
                 mapSection(r)
                 if let similar = r.similar, !similar.isEmpty { similarSection(similar) }
@@ -122,7 +123,16 @@ struct RestaurantDetailView: View {
                     .background(Theme.accent).foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+
             HStack(spacing: 10) {
+                if r.hasCallAction, let callURL = r.callURL {
+                    Button {
+                        openURL(callURL)
+                    } label: {
+                        callButtonContent(r)
+                    }
+                }
+
                 secondaryAction(
                     title: account.hasVisited(r) ? "Been here" : "Mark visited",
                     icon: account.hasVisited(r) ? "checkmark.seal.fill" : "checkmark.seal",
@@ -130,13 +140,31 @@ struct RestaurantDetailView: View {
                 ) { account.toggleVisited(r) }
 
                 secondaryAction(
-                    title: account.review(for: r) == nil ? "Write review" : "Edit review",
+                    title: account.review(for: r) == nil ? "Review" : "Edit review",
                     icon: "star.bubble",
                     active: account.review(for: r) != nil
                 ) { showReview = true }
             }
         }
         .padding(.horizontal)
+    }
+
+    private func callButtonContent(_ r: Restaurant) -> some View {
+        VStack(spacing: 2) {
+            Label("Call", systemImage: "phone.fill")
+                .font(.subheadline.weight(.semibold))
+            if let phone = r.phone, !phone.isEmpty {
+                Text(phone)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 11)
+        .background(Theme.good.opacity(0.16))
+        .foregroundStyle(Theme.good)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func secondaryAction(
@@ -226,13 +254,31 @@ struct RestaurantDetailView: View {
         }
     }
 
-    private func dishesSection(_ r: Restaurant) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Must-try dishes").sectionHeaderStyle().padding(.horizontal)
-            ForEach(r.mustTryDishes) { dish in
+    private func mustTrySection(_ r: Restaurant) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Must try").sectionHeaderStyle().padding(.horizontal)
+
+            if !r.mustTryFood.isEmpty {
+                mustTryGroup(title: "Dishes", icon: "fork.knife", dishes: r.mustTryFood)
+            }
+            if !r.mustTryDrinks.isEmpty {
+                mustTryGroup(title: "Drinks", icon: "wineglass", dishes: r.mustTryDrinks)
+            }
+        }
+    }
+
+    private func mustTryGroup(title: String, icon: String, dishes: [Dish]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.accent)
+                .padding(.horizontal)
+
+            ForEach(dishes) { dish in
                 HStack(alignment: .top, spacing: 12) {
                     RemoteImage(url: dish.photoUrl)
-                        .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 10))
+                        .frame(width: 56, height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(dish.name).font(.subheadline).fontWeight(.semibold)
                         if let why = dish.whyTry ?? dish.description {
@@ -246,51 +292,34 @@ struct RestaurantDetailView: View {
         }
     }
 
-    /// The complete menu, grouped into courses for easy scanning.
-    private func menuSection(_ dishes: [Dish]) -> some View {
-        let grouped = Dictionary(grouping: dishes) { MenuCourse.from($0.dishType) }
-        return VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Full menu").sectionHeaderStyle()
+    private func menuLinkSection(_ r: Restaurant) -> some View {
+        NavigationLink {
+            FullMenuView(restaurantName: r.name, dishes: r.allMenuDishes)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "list.bullet.rectangle")
+                    .font(.title3)
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 36)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Menu")
+                        .font(.subheadline.weight(.semibold))
+                    Text("\(r.allMenuDishes.count) items · full list")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Spacer()
-                Text("\(dishes.count) item\(dishes.count == 1 ? "" : "s")")
-                    .font(.caption2).foregroundStyle(.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
-            .padding(.horizontal)
-
-            ForEach(MenuCourse.allCases) { course in
-                if let items = grouped[course], !items.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label(course.title, systemImage: course.icon)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(Theme.accent)
-                            .padding(.horizontal)
-                        ForEach(items.sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }) { dish in
-                            menuRow(dish)
-                        }
-                    }
-                }
-            }
+            .padding(14)
+            .background(Theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
-    }
-
-    private func menuRow(_ dish: Dish) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(dish.name).font(.subheadline).fontWeight(.semibold)
-                    if dish.isMustTry == true {
-                        Image(systemName: "star.fill").font(.caption2).foregroundStyle(Theme.warn)
-                    }
-                    Spacer()
-                }
-                if let desc = dish.description ?? dish.whyTry, !desc.isEmpty {
-                    Text(desc).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Divider().opacity(0.4)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
         .padding(.horizontal)
     }
 

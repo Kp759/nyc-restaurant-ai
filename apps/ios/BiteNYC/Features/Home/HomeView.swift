@@ -32,21 +32,46 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    editorialContent
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
+            GeometryReader { geo in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 28) {
+                        editorialHeader
+
+                        Spacer(minLength: topBreathingRoom(screenHeight: geo.size.height))
+
+                        editorialAskBar
+
+                        editorialQuickRail
+                        editorialVibeStack
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 32)
+                    .frame(minHeight: geo.size.height, alignment: .top)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if askFocused { askFocused = false }
                 }
             }
             .background(Color(.systemBackground))
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissToolbar(focused: $askFocused)
             .navigationDestination(for: RestaurantRoute.self) { route in
                 RestaurantDetailView(slug: route.slug)
             }
             .task { await loadVibeCategories() }
         }
+    }
+
+    /// Pushes the ask card toward the vertical center / thumb zone.
+    private func topBreathingRoom(screenHeight: CGFloat) -> CGFloat {
+        let header: CGFloat = 72
+        let askCard: CGFloat = 210
+        let peekBelow: CGFloat = 64
+        let centered = (screenHeight - header - askCard - peekBelow) / 2
+        return max(44, centered)
     }
 
     // MARK: - Layout picker (compare layouts)
@@ -238,15 +263,6 @@ struct HomeView: View {
     }
 
     // MARK: - Editorial (light, airy layout)
-
-    private var editorialContent: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            editorialHeader
-            editorialAskBar
-            editorialQuickRail
-            editorialVibeStack
-        }
-    }
 
     private var editorialHeader: some View {
         VStack(alignment: .leading, spacing: 6) {

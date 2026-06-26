@@ -4,6 +4,7 @@ struct ChatView: View {
     @EnvironmentObject private var router: AppRouter
     @StateObject private var model = ChatViewModel()
     @State private var path = NavigationPath()
+    @FocusState private var inputFocused: Bool
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -21,7 +22,14 @@ struct ChatView: View {
                         }
                         .padding()
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     .onChange(of: model.messages.count) {
+                        if let last = model.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                    }
+                    .onChange(of: model.messages.last?.text) { _, _ in
+                        if let last = model.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                    }
+                    .onChange(of: model.messages.last?.visibleResultCount) { _, _ in
                         if let last = model.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
                     }
                 }
@@ -29,6 +37,17 @@ struct ChatView: View {
             }
             .navigationTitle("Ask BiteNYC")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        inputFocused = false
+                        router.selectedTab = .home
+                    } label: {
+                        Label("Home", systemImage: "chevron.left")
+                    }
+                }
+            }
+            .keyboardDismissToolbar(focused: $inputFocused)
             .navigationDestination(for: RestaurantRoute.self) { RestaurantDetailView(slug: $0.slug) }
         }
         .onAppear { consumePendingPrompt() }
@@ -83,6 +102,11 @@ struct ChatView: View {
                         Text("BiteNYC")
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(Theme.accent)
+                        if message.isStreaming {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(Theme.accent)
+                        }
                     }
                     Text(message.isError ? AttributedString(message.text) : markdown(message.text))
                         .font(.callout)
@@ -90,6 +114,7 @@ struct ChatView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                         .foregroundStyle(message.isError ? Theme.bad : .primary)
+                        .animation(.easeOut(duration: 0.12), value: message.text)
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -100,11 +125,12 @@ struct ChatView: View {
                         .strokeBorder(Theme.accent.opacity(0.12), lineWidth: 1)
                 )
 
-                ForEach(message.results) { result in
+                ForEach(Array(message.results.prefix(message.visibleResultCount))) { result in
                     NavigationLink(value: RestaurantRoute(slug: result.restaurant.slug)) {
                         RestaurantCard(restaurant: result.restaurant, whyItFits: result.whyItFits)
                     }
                     .buttonStyle(.plain)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
@@ -122,11 +148,21 @@ struct ChatView: View {
 
     private var inputBar: some View {
         HStack(spacing: 10) {
+            Button {
+                inputFocused = false
+            } label: {
+                Image(systemName: "keyboard.chevron.compact.down")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityLabel("Dismiss keyboard")
+
             TextField("Ask for a vibe, dish, or neighborhood…", text: $model.input, axis: .vertical)
                 .lineLimit(1...4)
                 .padding(10)
                 .background(Theme.cardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
+                .focused($inputFocused)
                 .submitLabel(.send)
                 .onSubmit { Task { await model.send() } }
             Button { Task { await model.send() } } label: {
