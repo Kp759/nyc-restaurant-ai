@@ -16,8 +16,7 @@ struct ChatView: View {
                                 messageView(message).id(message.id)
                             }
                             if model.isSending {
-                                HStack { ProgressView(); Text("Thinking…").foregroundStyle(.secondary) }
-                                    .font(.caption)
+                                FoodPunInlineLoadingView(quote: LoadingQuotes.chat[0])
                             }
                         }
                         .padding()

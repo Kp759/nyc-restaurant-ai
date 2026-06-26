@@ -5,6 +5,7 @@ enum AccountRoute: Hashable { case reservations, visited, reviews, savedLists }
 struct AccountView: View {
     @EnvironmentObject private var account: AccountStore
     @EnvironmentObject private var saved: SavedListsStore
+    @EnvironmentObject private var auth: AuthStore
     @StateObject private var model = AccountViewModel()
 
     @State private var showEditProfile = false
@@ -38,7 +39,13 @@ struct AccountView: View {
             .navigationDestination(for: RestaurantRoute.self) { RestaurantDetailView(slug: $0.slug) }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showEditProfile = true } label: { Image(systemName: "pencil") }
+                    HStack(spacing: 12) {
+                        if auth.isAuthenticated {
+                            Button("Sign out") { auth.signOut() }
+                                .font(.caption.weight(.semibold))
+                        }
+                        Button { showEditProfile = true } label: { Image(systemName: "pencil") }
+                    }
                 }
             }
             .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
@@ -69,6 +76,11 @@ struct AccountView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(account.profile.name).font(.display(.title2, weight: .bold))
                 Text(account.profile.tagline).font(.subheadline).foregroundStyle(Theme.accent)
+                if auth.isGuest {
+                    Button("Sign in to sync your taste") { auth.presentSignIn() }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                }
                 if !account.profile.homeNeighborhood.isEmpty {
                     Label(account.profile.homeNeighborhood, systemImage: "mappin.and.ellipse")
                         .font(.caption).foregroundStyle(.secondary)
@@ -147,7 +159,7 @@ struct AccountView: View {
             sectionHeader("Places you may like")
 
             if model.isLoading && model.recommendations.isEmpty {
-                ProgressView().frame(maxWidth: .infinity).padding()
+                FoodPunLoadingView(quotes: LoadingQuotes.search, minHeight: 120)
             } else if model.recommendations.isEmpty {
                 emptyHint("Set your vibe to see tailored picks.", icon: "wand.and.stars")
             } else {

@@ -18,7 +18,7 @@ enum HomeLayoutStyle: String, CaseIterable, Identifiable {
 
     var blurb: String {
         switch self {
-        case .classic: return "Bold hero, quick ideas only"
+        case .classic: return "Bold hero, NYC vibe cards"
         case .editorial: return "Neighborhood cards + occasion chips"
         case .minimal: return "Compact grid, less noise"
         }

@@ -12,7 +12,13 @@ struct HomeView: View {
     @FocusState private var askFocused: Bool
 
     private let editorialVibeCount = 4
+    private let classicVibeCount = 4
     private let minimalVibeCount = 6
+
+    /// API-backed categories, with bundled presets so cards always render offline.
+    private var displayVibeCategories: [VibeCategory] {
+        vibeCategories.isEmpty ? HomeVibeCategories.fallback : vibeCategories
+    }
 
     private let examples = [
         "Cozy date-night spot in the West Village…",
@@ -28,26 +34,14 @@ struct HomeView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    layoutSwitcher
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                        .padding(.bottom, 4)
-
-                    Group {
-                        switch layoutStyle {
-                        case .classic: classicContent
-                        case .editorial: editorialContent
-                        case .minimal: minimalContent
-                        }
-                    }
-                    .padding(.horizontal, horizontalPadding)
-                    .padding(.vertical, verticalPadding)
+                    editorialContent
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
                 }
             }
             .background(Color(.systemBackground))
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { layoutPicker }
             .navigationDestination(for: RestaurantRoute.self) { route in
                 RestaurantDetailView(slug: route.slug)
             }
@@ -116,6 +110,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 24) {
             classicHeader
             classicAskHero
+            classicVibeSection
             classicPromptChips
         }
     }
@@ -226,14 +221,30 @@ struct HomeView: View {
         }
     }
 
+    private var classicVibeSection: some View {
+        let shown = Array(displayVibeCategories.prefix(classicVibeCount))
+        return VStack(alignment: .leading, spacing: 14) {
+            nycVibesSectionHeader(showSeeAll: displayVibeCategories.count > classicVibeCount, style: .section)
+            ForEach(Array(shown.enumerated()), id: \.element.id) { index, category in
+                Button { ask(category.label) } label: {
+                    FeatureVibeCard(
+                        category: category,
+                        palette: VibePalette.make(for: category.label, index: index)
+                    )
+                }
+                .buttonStyle(CardPressStyle())
+            }
+        }
+    }
+
     // MARK: - Editorial (light, airy layout)
 
     private var editorialContent: some View {
         VStack(alignment: .leading, spacing: 28) {
             editorialHeader
             editorialAskBar
-            editorialQuickRail
             editorialVibeRail
+            editorialQuickRail
         }
     }
 
@@ -324,34 +335,24 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
     private var editorialVibeRail: some View {
-        if !vibeCategories.isEmpty {
-            let shown = Array(vibeCategories.prefix(editorialVibeCount))
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Explore neighborhoods")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    if vibeCategories.count > editorialVibeCount {
-                        Button("See all") { router.openExplore() }
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Theme.accent)
-                    }
-                }
+        let shown = Array(displayVibeCategories.prefix(editorialVibeCount))
+        return VStack(alignment: .leading, spacing: 12) {
+            nycVibesSectionHeader(
+                showSeeAll: displayVibeCategories.count > editorialVibeCount,
+                style: .editorial
+            )
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        ForEach(Array(shown.enumerated()), id: \.element.id) { index, category in
-                            Button { ask(category.label) } label: {
-                                EditorialVibeCard(
-                                    category: category,
-                                    palette: VibePalette.make(for: category.label, index: index)
-                                )
-                            }
-                            .buttonStyle(CardPressStyle())
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(Array(shown.enumerated()), id: \.element.id) { index, category in
+                        Button { ask(category.label) } label: {
+                            EditorialVibeCard(
+                                category: category,
+                                palette: VibePalette.make(for: category.label, index: index)
+                            )
                         }
+                        .buttonStyle(CardPressStyle())
                     }
                 }
             }
@@ -369,8 +370,8 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 22) {
             minimalHeader
             minimalAskBar
-            minimalQuickChips
             minimalVibeGrid
+            minimalQuickChips
         }
     }
 
@@ -437,32 +438,22 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
     private var minimalVibeGrid: some View {
-        if !vibeCategories.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("Explore neighborhoods")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    if vibeCategories.count > minimalVibeCount {
-                        Button("See all") { router.openExplore() }
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Theme.accent)
-                    }
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            nycVibesSectionHeader(
+                showSeeAll: displayVibeCategories.count > minimalVibeCount,
+                style: .minimal
+            )
 
-                LazyVGrid(columns: minimalVibeColumns, spacing: 10) {
-                    ForEach(Array(vibeCategories.prefix(minimalVibeCount).enumerated()), id: \.element.id) { index, category in
-                        Button { ask(category.label) } label: {
-                            MinimalVibeTile(
-                                category: category,
-                                palette: VibePalette.make(for: category.label, index: index)
-                            )
-                        }
-                        .buttonStyle(CardPressStyle())
+            LazyVGrid(columns: minimalVibeColumns, spacing: 10) {
+                ForEach(Array(displayVibeCategories.prefix(minimalVibeCount).enumerated()), id: \.element.id) { index, category in
+                    Button { ask(category.label) } label: {
+                        MinimalVibeTile(
+                            category: category,
+                            palette: VibePalette.make(for: category.label, index: index)
+                        )
                     }
+                    .buttonStyle(CardPressStyle())
                 }
             }
         }
@@ -492,6 +483,34 @@ struct HomeView: View {
 
     private func ask(_ prompt: String) {
         router.askInChat(prompt)
+    }
+
+    private enum VibesHeaderStyle { case section, editorial, minimal }
+
+    @ViewBuilder
+    private func nycVibesSectionHeader(showSeeAll: Bool, style: VibesHeaderStyle) -> some View {
+        HStack {
+            Group {
+                switch style {
+                case .section:
+                    Text("NYC vibes").sectionHeaderStyle()
+                case .editorial:
+                    Text("NYC vibes")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                case .minimal:
+                    Text("NYC vibes")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            if showSeeAll {
+                Button("See all") { router.openExplore() }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+            }
+        }
     }
 
     private func submit() {
@@ -544,23 +563,20 @@ struct EditorialVibeCard: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: palette.colors.map { $0.opacity(0.85) },
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(palette.colors.first?.opacity(0.55) ?? Theme.chipBackground)
                     Text(palette.emoji).font(.title2)
                 }
                 .frame(width: 48, height: 48)
+                .overlay(
+                    Circle().strokeBorder(palette.colors.last?.opacity(0.25) ?? .clear, lineWidth: 1)
+                )
 
                 VStack(alignment: .leading, spacing: 3) {
                     if let hood = category.neighborhood, !hood.isEmpty {
                         Text(hood.uppercased())
                             .font(.caption2.weight(.bold))
                             .tracking(0.8)
-                            .foregroundStyle(Theme.accent)
+                            .foregroundStyle(palette.colors.last?.opacity(0.95) ?? Theme.accent)
                     }
                     Text(category.label)
                         .font(.display(.subheadline, weight: .bold))
@@ -573,20 +589,29 @@ struct EditorialVibeCard: View {
 
                 Image(systemName: "arrow.up.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(palette.colors.last?.opacity(0.85) ?? .secondary)
                     .padding(8)
-                    .background(Theme.chipBackground)
+                    .background(palette.colors.first?.opacity(0.35) ?? Theme.chipBackground)
                     .clipShape(Circle())
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
         }
         .frame(width: 248, height: 88)
-        .background(Theme.cardBackground)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: palette.colors.map { $0.opacity(0.42) },
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                .strokeBorder(palette.colors.last?.opacity(0.18) ?? Color.primary.opacity(0.06), lineWidth: 1)
         )
     }
 }
@@ -669,20 +694,74 @@ struct CardPressStyle: ButtonStyle {
     }
 }
 
+struct FeatureVibeCard: View {
+    let category: VibeCategory
+    let palette: VibePalette
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            LinearGradient(colors: palette.colors,
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+
+            Image(systemName: palette.icon)
+                .font(.system(size: 96, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.16))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .offset(x: 20, y: 4)
+
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(.white.opacity(0.22))
+                    Text(palette.emoji).font(.title)
+                }
+                .frame(width: 52, height: 52)
+                .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: 1))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    if let hood = category.neighborhood, !hood.isEmpty {
+                        Text(hood.uppercased())
+                            .font(.caption2.weight(.bold))
+                            .tracking(1.4)
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                    Text(category.label)
+                        .font(.display(.title3, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 4) {
+                        Text("Explore")
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.95))
+                    .padding(.top, 1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 116)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .shadow(color: (palette.colors.last ?? .black).opacity(0.28), radius: 6, y: 4)
+    }
+}
+
 struct VibePalette {
     let colors: [Color]
     let icon: String
     let emoji: String
 
     private static let gradients: [[Color]] = [
-        [Color(red: 1.00, green: 0.36, blue: 0.42), Color(red: 0.96, green: 0.16, blue: 0.55)],
-        [Color(red: 1.00, green: 0.55, blue: 0.20), Color(red: 1.00, green: 0.30, blue: 0.28)],
-        [Color(red: 0.40, green: 0.50, blue: 0.98), Color(red: 0.60, green: 0.32, blue: 0.92)],
-        [Color(red: 0.18, green: 0.72, blue: 0.62), Color(red: 0.12, green: 0.52, blue: 0.74)],
-        [Color(red: 0.95, green: 0.45, blue: 0.30), Color(red: 0.72, green: 0.22, blue: 0.55)],
-        [Color(red: 0.36, green: 0.42, blue: 0.78), Color(red: 0.20, green: 0.24, blue: 0.45)],
-        [Color(red: 0.20, green: 0.62, blue: 0.40), Color(red: 0.10, green: 0.42, blue: 0.36)],
-        [Color(red: 0.85, green: 0.30, blue: 0.42), Color(red: 0.55, green: 0.18, blue: 0.50)],
+        [Color(red: 1.00, green: 0.88, blue: 0.90), Color(red: 0.98, green: 0.82, blue: 0.92)],
+        [Color(red: 0.88, green: 0.93, blue: 1.00), Color(red: 0.82, green: 0.90, blue: 0.98)],
+        [Color(red: 0.88, green: 0.97, blue: 0.90), Color(red: 0.82, green: 0.93, blue: 0.86)],
+        [Color(red: 1.00, green: 0.94, blue: 0.82), Color(red: 0.98, green: 0.88, blue: 0.78)],
+        [Color(red: 0.93, green: 0.88, blue: 1.00), Color(red: 0.88, green: 0.82, blue: 0.98)],
+        [Color(red: 0.90, green: 0.96, blue: 0.98), Color(red: 0.84, green: 0.92, blue: 0.96)],
+        [Color(red: 1.00, green: 0.90, blue: 0.86), Color(red: 0.98, green: 0.84, blue: 0.80)],
+        [Color(red: 0.96, green: 0.92, blue: 0.88), Color(red: 0.92, green: 0.86, blue: 0.82)],
     ]
 
     static func make(for label: String, index: Int) -> VibePalette {

@@ -54,5 +54,18 @@
 	</dict>
 	<key>BiteNYCAPIBaseURL</key>
 	<string>http://192.168.0.151:4000</string>
+	<key>BiteNYCSupabaseURL</key>
+	<string></string>
+	<key>BiteNYCSupabaseAnonKey</key>
+	<string></string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.bitenyc.app</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

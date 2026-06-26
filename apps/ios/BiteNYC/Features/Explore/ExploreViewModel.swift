@@ -47,11 +47,11 @@ final class ExploreViewModel: ObservableObject {
             let (f, h) = try await (filters, hoods)
             boroughs = f.boroughs
             vibeTags = f.vibeTags
-            vibeCategories = f.vibeCategories
+            vibeCategories = f.vibeCategories.isEmpty ? HomeVibeCategories.fallback : f.vibeCategories
             neighborhoods = h
             didLoadMetadata = true
         } catch {
-            // Non-fatal: filters just won't populate.
+            vibeCategories = HomeVibeCategories.fallback
         }
     }
 

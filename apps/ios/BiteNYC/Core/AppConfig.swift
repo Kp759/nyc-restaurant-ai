@@ -10,4 +10,19 @@ enum AppConfig {
         }
         return URL(string: "http://localhost:4000")!
     }
+
+    static var supabaseURL: URL? {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "BiteNYCSupabaseURL") as? String,
+              !raw.isEmpty,
+              let url = URL(string: raw) else { return nil }
+        return url
+    }
+
+    static var supabaseAnonKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "BiteNYCSupabaseAnonKey") as? String ?? ""
+    }
+
+    static var isSupabaseConfigured: Bool {
+        supabaseURL != nil && !supabaseAnonKey.isEmpty
+    }
 }

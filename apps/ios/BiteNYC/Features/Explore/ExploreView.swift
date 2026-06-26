@@ -93,16 +93,17 @@ struct ExploreView: View {
 
     @ViewBuilder
     private var curatedPicksBar: some View {
-        if !model.vibeCategories.isEmpty {
+        let categories = model.vibeCategories.isEmpty ? HomeVibeCategories.fallback : model.vibeCategories
+        if !categories.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Explore neighborhoods")
+                Text("NYC vibes")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(model.vibeCategories) { category in
+                        ForEach(categories) { category in
                             Button { router.askInChat(category.label) } label: {
                                 VStack(alignment: .leading, spacing: 2) {
                                     if let hood = category.neighborhood, !hood.isEmpty {
@@ -136,7 +137,7 @@ struct ExploreView: View {
     @ViewBuilder
     private var content: some View {
         if model.isLoading && model.restaurants.isEmpty {
-            Spacer(); ProgressView("Loading NYC spots…"); Spacer()
+            Spacer(); FoodPunLoadingView(quotes: LoadingQuotes.general); Spacer()
         } else if let error = model.errorMessage, model.restaurants.isEmpty {
             ErrorBanner(message: error) { reload() }
         } else if mode == .list {

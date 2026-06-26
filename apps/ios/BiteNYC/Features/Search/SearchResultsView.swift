@@ -11,7 +11,7 @@ struct SearchResultsView: View {
     var body: some View {
         ScrollView {
             if isLoading {
-                ProgressView("Finding the best NYC spots…")
+                FoodPunLoadingView(quotes: LoadingQuotes.search)
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if let errorMessage {
                 ErrorBanner(message: errorMessage) { Task { await load() } }

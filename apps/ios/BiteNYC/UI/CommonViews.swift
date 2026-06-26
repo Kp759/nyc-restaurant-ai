@@ -71,7 +71,11 @@ struct RemoteImage: View {
             case .failure:
                 placeholder.overlay(Image(systemName: "fork.knife").foregroundStyle(.secondary))
             case .empty:
-                placeholder.overlay(ProgressView())
+                placeholder.overlay(
+                    Text(LoadingQuotes.image[0].emoji)
+                        .font(.title2)
+                        .opacity(0.7)
+                )
             @unknown default:
                 placeholder
             }

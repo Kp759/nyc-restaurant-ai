@@ -17,7 +17,7 @@ struct RestaurantDetailView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView().frame(maxWidth: .infinity, minHeight: 300)
+                FoodPunLoadingView(quotes: LoadingQuotes.detail, minHeight: 300)
             } else if let restaurant {
                 content(restaurant)
             } else {
