@@ -18,20 +18,45 @@ struct AuthView: View {
     @State private var password = ""
     @State private var appleNonce = ""
 
+    private var accentGradient: LinearGradient {
+        LinearGradient(
+            colors: [Theme.accent, Color(red: 0.96, green: 0.18, blue: 0.55)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    header
-                    modePicker
-                    socialButtons
-                    emailSection
-                    guestButton
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Theme.accent.opacity(0.12),
+                        Color(red: 0.96, green: 0.18, blue: 0.55).opacity(0.08),
+                        Color(.systemBackground),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 28) {
+                        Spacer(minLength: 48)
+
+                        header
+                        modePicker
+                        authButtons
+                        emailSection
+                        guestButton
+
+                        Spacer(minLength: 48)
+                    }
+                    .frame(maxWidth: 400)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 28)
                 }
-                .padding(.horizontal, 22)
-                .padding(.vertical, 20)
             }
-            .background(Color(.systemBackground))
             .overlay {
                 if auth.isLoading {
                     ZStack {
@@ -50,16 +75,19 @@ struct AuthView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text("Bite").font(.display(.largeTitle, weight: .bold))
                 Text("NYC").font(.display(.largeTitle, weight: .bold)).foregroundStyle(Theme.accent)
             }
+
             Text(mode == .login ? "Welcome back — let's find your next great meal." : "Join BiteNYC and save your taste, lists, and reservations.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var modePicker: some View {
@@ -73,7 +101,7 @@ struct AuthView: View {
         }
     }
 
-    private var socialButtons: some View {
+    private var authButtons: some View {
         VStack(spacing: 12) {
             SignInWithAppleButton(mode == .login ? .signIn : .signUp) { request in
                 let nonce = SupabaseAuthClient.randomNonce()
@@ -96,13 +124,14 @@ struct AuthView: View {
                 }
             }
             .signInWithAppleButtonStyle(.white)
-            .frame(height: 50)
+            .frame(height: 52)
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
 
-            AuthProviderButton(
+            AuthBrandButton(
                 title: "Continue with Google",
                 icon: "g.circle.fill",
-                paletteIndex: 1
+                style: .google
             ) {
                 Task {
                     await auth.signInWithGoogle()
@@ -110,10 +139,10 @@ struct AuthView: View {
                 }
             }
 
-            AuthProviderButton(
-                title: "Continue with Email",
+            AuthBrandButton(
+                title: showEmailForm ? "Hide email form" : "Continue with Email",
                 icon: "envelope.fill",
-                paletteIndex: 2
+                style: .email
             ) {
                 withAnimation(.easeInOut) { showEmailForm.toggle() }
             }
@@ -123,7 +152,7 @@ struct AuthView: View {
     @ViewBuilder
     private var emailSection: some View {
         if showEmailForm {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(spacing: 14) {
                 if mode == .signUp {
                     AuthTextField(title: "Name", text: $name, contentType: .name)
                 }
@@ -134,7 +163,8 @@ struct AuthView: View {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
                 }
 
                 Button(action: submitEmail) {
@@ -142,18 +172,24 @@ struct AuthView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Theme.accent)
+                        .background(accentGradient)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(color: Theme.accent.opacity(0.35), radius: 8, y: 4)
                 }
                 .disabled(!canSubmitEmail)
                 .opacity(canSubmitEmail ? 1 : 0.55)
             }
-            .padding(16)
+            .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: 18)
-                    .fill(Theme.accent.opacity(0.08))
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(Theme.accent.opacity(0.2), lineWidth: 1)
+                    )
             )
+            .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
 
@@ -164,7 +200,7 @@ struct AuthView: View {
             } label: {
                 Text("Continue as guest")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.accent)
             }
             if !auth.usesRemoteAuth {
                 Text("Supabase keys not set — social and email sign-in use local demo mode.")
@@ -174,7 +210,6 @@ struct AuthView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 4)
     }
 
     private var canSubmitEmail: Bool {
@@ -194,41 +229,61 @@ struct AuthView: View {
     }
 }
 
-struct AuthProviderButton: View {
+enum AuthBrandStyle {
+    case google, email
+
+    var background: LinearGradient {
+        switch self {
+        case .google:
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.26, green: 0.52, blue: 0.96),
+                    Color(red: 0.18, green: 0.40, blue: 0.88),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .email:
+            return LinearGradient(
+                colors: [
+                    Theme.accent,
+                    Color(red: 0.96, green: 0.18, blue: 0.55),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
+    var shadowColor: Color {
+        switch self {
+        case .google: return Color(red: 0.26, green: 0.52, blue: 0.96)
+        case .email: return Theme.accent
+        }
+    }
+}
+
+struct AuthBrandButton: View {
     let title: String
     let icon: String
-    let paletteIndex: Int
+    let style: AuthBrandStyle
     let action: () -> Void
-
-    private var palette: VibePalette { VibePalette.make(for: title, index: paletteIndex) }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(palette.colors.first?.opacity(0.35) ?? Theme.chipBackground)
-                    Image(systemName: icon)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(palette.colors.last ?? Theme.accent)
-                }
-                .frame(width: 36, height: 36)
-
+                Image(systemName: icon)
+                    .font(.title3.weight(.semibold))
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(.headline)
                 Spacer()
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(palette.colors.first?.opacity(0.14) ?? Theme.chipBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(palette.colors.last?.opacity(0.22) ?? .clear, lineWidth: 1)
-            )
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(style.background)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: style.shadowColor.opacity(0.35), radius: 8, y: 4)
         }
         .buttonStyle(CardPressStyle())
     }
@@ -243,7 +298,11 @@ struct AuthTextField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+
             Group {
                 if isSecure {
                     SecureField(title, text: $text)
@@ -254,10 +313,15 @@ struct AuthTextField: View {
                 }
             }
             .textContentType(contentType)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(Theme.accent.opacity(0.25), lineWidth: 1)
+            )
         }
     }
 }

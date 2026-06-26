@@ -103,26 +103,30 @@ struct ExploreView: View {
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(categories) { category in
+                        ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
                             Button { router.askInChat(category.label) } label: {
+                                let palette = VibePalette.make(for: category.label, index: index)
                                 VStack(alignment: .leading, spacing: 2) {
                                     if let hood = category.neighborhood, !hood.isEmpty {
                                         Text(hood)
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(.white.opacity(0.85))
                                             .lineLimit(1)
                                     }
                                     Text(category.label)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.primary)
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(.white)
                                         .lineLimit(2)
                                         .multilineTextAlignment(.leading)
                                 }
                                 .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 10)
                                 .frame(maxWidth: 180, alignment: .leading)
-                                .background(Theme.chipBackground)
+                                .background(
+                                    LinearGradient(colors: palette.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                                )
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .shadow(color: palette.colors.last?.opacity(0.35) ?? .clear, radius: 4, y: 2)
                             }
                             .buttonStyle(.plain)
                         }

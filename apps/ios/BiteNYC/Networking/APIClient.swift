@@ -142,7 +142,7 @@ final class APIClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw APIError.transport(error.localizedDescription)
+            throw APIError.transport(Self.connectionHelp(from: error))
         }
         guard let http = response as? HTTPURLResponse else {
             throw APIError.transport("No HTTP response")
@@ -159,6 +159,23 @@ final class APIClient {
         } catch {
             throw APIError.decoding(error.localizedDescription)
         }
+    }
+
+    private static func connectionHelp(from error: Error) -> String {
+        let ns = error as NSError
+        guard ns.domain == NSURLErrorDomain else { return error.localizedDescription }
+
+        #if targetEnvironment(simulator)
+        return """
+        Can't reach the BiteNYC API at \(AppConfig.apiOriginLabel). \
+        Run `pnpm dev:api` on your Mac — the simulator uses http://127.0.0.1:4000.
+        """
+        #else
+        return """
+        Can't reach the BiteNYC API at \(AppConfig.apiOriginLabel). \
+        Run `pnpm dev:api` on your Mac and set BiteNYCAPIBaseURL in Info.plist to your Mac's LAN IP (e.g. http://192.168.1.20:4000).
+        """
+        #endif
     }
 }
 

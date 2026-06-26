@@ -53,7 +53,7 @@
 		<true/>
 	</dict>
 	<key>BiteNYCAPIBaseURL</key>
-	<string>http://192.168.0.151:4000</string>
+	<string>http://127.0.0.1:4000</string>
 	<key>BiteNYCSupabaseURL</key>
 	<string></string>
 	<key>BiteNYCSupabaseAnonKey</key>

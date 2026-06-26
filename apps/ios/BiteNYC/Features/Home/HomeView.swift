@@ -549,38 +549,36 @@ struct EditorialPill: View {
     }
 }
 
-/// Landscape editorial card — accent stripe, emoji badge, serif title.
+/// Landscape editorial card — vivid gradient, emoji badge, serif title.
 struct EditorialVibeCard: View {
     let category: VibeCategory
     let palette: VibePalette
 
     var body: some View {
         HStack(spacing: 0) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(LinearGradient(colors: palette.colors, startPoint: .top, endPoint: .bottom))
-                .frame(width: 4)
+            RoundedRectangle(cornerRadius: 3)
+                .fill(LinearGradient(colors: [.white.opacity(0.95), .white.opacity(0.55)], startPoint: .top, endPoint: .bottom))
+                .frame(width: 5)
 
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(palette.colors.first?.opacity(0.55) ?? Theme.chipBackground)
+                        .fill(.white.opacity(0.22))
                     Text(palette.emoji).font(.title2)
                 }
-                .frame(width: 48, height: 48)
-                .overlay(
-                    Circle().strokeBorder(palette.colors.last?.opacity(0.25) ?? .clear, lineWidth: 1)
-                )
+                .frame(width: 50, height: 50)
+                .overlay(Circle().strokeBorder(.white.opacity(0.45), lineWidth: 1.5))
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     if let hood = category.neighborhood, !hood.isEmpty {
                         Text(hood.uppercased())
                             .font(.caption2.weight(.bold))
-                            .tracking(0.8)
-                            .foregroundStyle(palette.colors.last?.opacity(0.95) ?? Theme.accent)
+                            .tracking(0.9)
+                            .foregroundStyle(.white.opacity(0.88))
                     }
                     Text(category.label)
                         .font(.display(.subheadline, weight: .bold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.white)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -589,30 +587,24 @@ struct EditorialVibeCard: View {
 
                 Image(systemName: "arrow.up.right")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(palette.colors.last?.opacity(0.85) ?? .secondary)
+                    .foregroundStyle(palette.colors.last ?? Theme.accent)
                     .padding(8)
-                    .background(palette.colors.first?.opacity(0.35) ?? Theme.chipBackground)
+                    .background(.white.opacity(0.92))
                     .clipShape(Circle())
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
         }
-        .frame(width: 248, height: 88)
+        .frame(width: 252, height: 92)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(
-                    LinearGradient(
-                        colors: palette.colors.map { $0.opacity(0.42) },
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            LinearGradient(colors: palette.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(palette.colors.last?.opacity(0.18) ?? Color.primary.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18)
+                .strokeBorder(.white.opacity(0.22), lineWidth: 1)
         )
+        .shadow(color: (palette.colors.last ?? .black).opacity(0.45), radius: 10, y: 5)
     }
 }
 
@@ -754,14 +746,14 @@ struct VibePalette {
     let emoji: String
 
     private static let gradients: [[Color]] = [
-        [Color(red: 1.00, green: 0.88, blue: 0.90), Color(red: 0.98, green: 0.82, blue: 0.92)],
-        [Color(red: 0.88, green: 0.93, blue: 1.00), Color(red: 0.82, green: 0.90, blue: 0.98)],
-        [Color(red: 0.88, green: 0.97, blue: 0.90), Color(red: 0.82, green: 0.93, blue: 0.86)],
-        [Color(red: 1.00, green: 0.94, blue: 0.82), Color(red: 0.98, green: 0.88, blue: 0.78)],
-        [Color(red: 0.93, green: 0.88, blue: 1.00), Color(red: 0.88, green: 0.82, blue: 0.98)],
-        [Color(red: 0.90, green: 0.96, blue: 0.98), Color(red: 0.84, green: 0.92, blue: 0.96)],
-        [Color(red: 1.00, green: 0.90, blue: 0.86), Color(red: 0.98, green: 0.84, blue: 0.80)],
-        [Color(red: 0.96, green: 0.92, blue: 0.88), Color(red: 0.92, green: 0.86, blue: 0.82)],
+        [Color(red: 1.00, green: 0.38, blue: 0.52), Color(red: 0.92, green: 0.18, blue: 0.58)],
+        [Color(red: 0.40, green: 0.55, blue: 1.00), Color(red: 0.58, green: 0.32, blue: 0.95)],
+        [Color(red: 0.20, green: 0.82, blue: 0.68), Color(red: 0.12, green: 0.58, blue: 0.72)],
+        [Color(red: 1.00, green: 0.58, blue: 0.22), Color(red: 1.00, green: 0.32, blue: 0.28)],
+        [Color(red: 0.95, green: 0.42, blue: 0.85), Color(red: 0.65, green: 0.28, blue: 0.92)],
+        [Color(red: 0.30, green: 0.78, blue: 1.00), Color(red: 0.18, green: 0.48, blue: 0.88)],
+        [Color(red: 1.00, green: 0.72, blue: 0.28), Color(red: 0.98, green: 0.45, blue: 0.18)],
+        [Color(red: 0.55, green: 0.90, blue: 0.45), Color(red: 0.22, green: 0.72, blue: 0.52)],
     ]
 
     static func make(for label: String, index: Int) -> VibePalette {
