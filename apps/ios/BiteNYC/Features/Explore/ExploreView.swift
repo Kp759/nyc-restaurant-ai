@@ -150,6 +150,7 @@ struct ExploreView: View {
             ExploreMapView(restaurants: model.restaurants) { slug in
                 path.append(RestaurantRoute(slug: slug))
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
@@ -201,21 +202,79 @@ struct ExploreMapView: View {
             span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
         )
     )
+    @State private var selectedSlug: String?
+    @State private var fittedRestaurantIDs: Set<String> = []
 
     var body: some View {
-        Map(position: $position) {
+        Map(position: $position, interactionModes: .all, selection: $selectedSlug) {
             ForEach(restaurants) { r in
-                Annotation(r.name, coordinate: CLLocationCoordinate2D(latitude: r.latitude, longitude: r.longitude)) {
-                    Button { onSelect(r.slug) } label: {
-                        VStack(spacing: 2) {
-                            Image(systemName: "fork.knife.circle.fill")
-                                .font(.title2).foregroundStyle(Theme.accent)
-                            Text(r.priceLabel).font(.caption2).fontWeight(.bold)
-                        }
-                    }
-                }
+                Marker(
+                    r.name,
+                    systemImage: "fork.knife.circle.fill",
+                    coordinate: CLLocationCoordinate2D(latitude: r.latitude, longitude: r.longitude)
+                )
+                .tag(r.slug)
+                .tint(Theme.accent)
             }
         }
-        .mapStyle(.standard(elevation: .flat))
+        .mapStyle(.standard(elevation: .realistic))
+        .mapControls {
+            MapCompass()
+            MapScaleView()
+        }
+        .onAppear { fitToRestaurantsIfNeeded() }
+        .onChange(of: restaurantIDs) { _, _ in fitToRestaurantsIfNeeded() }
+        .onChange(of: selectedSlug) { _, slug in
+            guard let slug else { return }
+            onSelect(slug)
+            selectedSlug = nil
+        }
+    }
+
+    private var restaurantIDs: [String] {
+        restaurants.map(\.id)
+    }
+
+    private func fitToRestaurantsIfNeeded() {
+        let ids = Set(restaurantIDs)
+        guard !ids.isEmpty, ids != fittedRestaurantIDs else { return }
+        fittedRestaurantIDs = ids
+        position = .region(region(containing: restaurants))
+    }
+
+    private func region(containing restaurants: [Restaurant]) -> MKCoordinateRegion {
+        guard let first = restaurants.first else {
+            return MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 40.7308, longitude: -73.9973),
+                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+            )
+        }
+        if restaurants.count == 1 {
+            return MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: first.latitude, longitude: first.longitude),
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            )
+        }
+
+        var minLat = first.latitude
+        var maxLat = first.latitude
+        var minLon = first.longitude
+        var maxLon = first.longitude
+        for r in restaurants.dropFirst() {
+            minLat = min(minLat, r.latitude)
+            maxLat = max(maxLat, r.latitude)
+            minLon = min(minLon, r.longitude)
+            maxLon = max(maxLon, r.longitude)
+        }
+
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(0.02, (maxLat - minLat) * 1.35),
+            longitudeDelta: max(0.02, (maxLon - minLon) * 1.35)
+        )
+        return MKCoordinateRegion(center: center, span: span)
     }
 }
