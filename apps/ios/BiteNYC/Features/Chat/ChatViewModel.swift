@@ -36,6 +36,14 @@ final class ChatViewModel: ObservableObject {
     @Published var input = ""
     @Published var isSending = false
 
+    /// Newest conversation turns appear first in the UI.
+    var latestTurnID: UUID? { messages.first?.id }
+
+    var newestAssistant: ChatMessage? {
+        guard messages.count > 1, messages[1].role == "assistant" else { return nil }
+        return messages[1]
+    }
+
     private var revealTask: Task<Void, Never>?
 
     let starters = [
@@ -50,22 +58,19 @@ final class ChatViewModel: ObservableObject {
         guard !text.isEmpty, !isSending else { return }
 
         revealTask?.cancel()
-        messages.append(ChatMessage(role: "user", text: text))
+        messages.insert(ChatMessage(role: "user", text: text), at: 0)
         input = ""
         isSending = true
 
-        let history = messages
-            .filter { !$0.isError && !$0.isStreaming }
-            .dropLast()
-            .map { ChatTurn(role: $0.role, content: $0.text) }
+        let history = chronologicalHistory(excludingLatestUser: true)
 
         do {
-            let response = try await APIClient.shared.chat(message: text, history: Array(history))
+            let response = try await APIClient.shared.chat(message: text, history: history)
             isSending = false
             await revealAssistantResponse(text: response.reply, results: response.results)
         } catch {
             let msg = (error as? APIError)?.errorDescription ?? error.localizedDescription
-            messages.append(ChatMessage(role: "assistant", text: msg, isError: true))
+            messages.insert(ChatMessage(role: "assistant", text: msg, isError: true), at: 1)
             isSending = false
         }
     }
@@ -73,7 +78,7 @@ final class ChatViewModel: ObservableObject {
     /// Gradually reveals the assistant reply word-by-word, then staggers cards.
     private func revealAssistantResponse(text: String, results: [SearchResult]) async {
         let messageID = UUID()
-        messages.append(
+        messages.insert(
             ChatMessage(
                 id: messageID,
                 role: "assistant",
@@ -81,7 +86,8 @@ final class ChatViewModel: ObservableObject {
                 results: results,
                 visibleResultCount: 0,
                 isStreaming: true
-            )
+            ),
+            at: 1
         )
 
         let words = text.split(separator: " ", omittingEmptySubsequences: false)
@@ -102,6 +108,14 @@ final class ChatViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 450_000_000)
             updateMessage(messageID) { $0.visibleResultCount = count }
         }
+    }
+
+    private func chronologicalHistory(excludingLatestUser: Bool) -> [ChatTurn] {
+        let slice = excludingLatestUser ? messages.dropFirst() : messages[...]
+        return slice
+            .reversed()
+            .filter { !$0.isError && !$0.isStreaming }
+            .map { ChatTurn(role: $0.role, content: $0.text) }
     }
 
     private func updateMessage(_ id: UUID, mutate: (inout ChatMessage) -> Void) {

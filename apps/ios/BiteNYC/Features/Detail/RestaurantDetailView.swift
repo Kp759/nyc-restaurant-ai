@@ -14,6 +14,11 @@ struct RestaurantDetailView: View {
     @State private var showSaveSheet = false
     @State private var showReport = false
     @State private var showReview = false
+    @State private var galleryPhotoIndex: Int?
+
+    private var photoItems: [MediaItem] {
+        restaurant?.media?.filter { $0.mediaType == "photo" } ?? []
+    }
 
     var body: some View {
         Group {
@@ -54,6 +59,14 @@ struct RestaurantDetailView: View {
             Button("Cancel", role: .cancel) {}
         }
         .task(id: slug) { await load() }
+        .fullScreenCover(isPresented: Binding(
+            get: { galleryPhotoIndex != nil },
+            set: { if !$0 { galleryPhotoIndex = nil } }
+        )) {
+            if galleryPhotoIndex != nil, !photoItems.isEmpty {
+                PhotoGalleryViewer(photos: photoItems, selectedIndex: $galleryPhotoIndex)
+            }
+        }
     }
 
     @ViewBuilder
@@ -63,7 +76,7 @@ struct RestaurantDetailView: View {
                 hero(r)
                 header(r)
                 actionsSection(r)
-                if !(r.bookingLinks ?? []).isEmpty { bookingSection(r) }
+                if !(r.effectiveBookingLinks).isEmpty { bookingSection(r) }
                 if !r.displayTags.isEmpty { tagsSection(r) }
                 if let summary = r.editorialSummary ?? r.description { summarySection(summary) }
                 socialSection(r)
@@ -80,10 +93,21 @@ struct RestaurantDetailView: View {
 
     private func hero(_ r: Restaurant) -> some View {
         ZStack(alignment: .bottomLeading) {
-            RemoteImage(url: r.heroImageURL)
-                .frame(height: 240).frame(maxWidth: .infinity).clipped()
+            Button {
+                openPhotoGallery(at: 0)
+            } label: {
+                RemoteImage(url: r.heroImageURL)
+                    .frame(height: 240)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+            }
+            .buttonStyle(.plain)
+            .disabled(photoItems.isEmpty)
+
             LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
                 .frame(height: 240)
+                .allowsHitTesting(false)
+
             Button { saved.toggleQuickSave(r) } label: {
                 Image(systemName: saved.isSaved(r) ? "bookmark.fill" : "bookmark")
                     .padding(10).background(.ultraThinMaterial, in: Circle())
@@ -153,11 +177,14 @@ struct RestaurantDetailView: View {
         VStack(spacing: 2) {
             Label("Call", systemImage: "phone.fill")
                 .font(.subheadline.weight(.semibold))
-            if let phone = r.phone, !phone.isEmpty {
+            if let phone = r.dialPhoneNumber, !phone.isEmpty {
                 Text(phone)
                     .font(.caption2)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
+            } else if r.usesMapsCallFallback {
+                Text("via Google Maps")
+                    .font(.caption2)
             }
         }
         .frame(maxWidth: .infinity)
@@ -182,7 +209,7 @@ struct RestaurantDetailView: View {
 
     private func bookingSection(_ r: Restaurant) -> some View {
         VStack(spacing: 8) {
-            ForEach(r.bookingLinks ?? []) { BookingButton(link: $0) }
+            ForEach(r.effectiveBookingLinks.filter { $0.provider != "phone" }) { BookingButton(link: $0) }
         }
         .padding(.horizontal)
     }
@@ -352,15 +379,26 @@ struct RestaurantDetailView: View {
             Text("Photos").sectionHeaderStyle().padding(.horizontal)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(photos) { photo in
-                        RemoteImage(url: photo.thumbnailUrl ?? photo.url)
-                            .frame(width: 200, height: 140).clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+                        Button {
+                            openPhotoGallery(at: index)
+                        } label: {
+                            RemoteImage(url: photo.thumbnailUrl ?? photo.url)
+                                .frame(width: 200, height: 140)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal)
             }
         }
+    }
+
+    private func openPhotoGallery(at index: Int) {
+        guard !photoItems.isEmpty else { return }
+        galleryPhotoIndex = min(max(index, 0), photoItems.count - 1)
     }
 
     private func mapSection(_ r: Restaurant) -> some View {

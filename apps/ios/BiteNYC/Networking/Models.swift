@@ -76,7 +76,7 @@ struct Restaurant: Codable, Identifiable, Hashable {
             .sorted { ($0.rank ?? 0) < ($1.rank ?? 0) }
     }
 
-    /// Phone number for dialing (never opens Maps).
+    /// Phone number for dialing when available.
     var dialPhoneNumber: String? {
         if let phone, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return phone
@@ -89,15 +89,63 @@ struct Restaurant: Codable, Identifiable, Hashable {
         return nil
     }
 
-    /// `tel:` link when a phone number is known.
-    var callURL: URL? {
-        guard let raw = dialPhoneNumber else { return nil }
-        let digits = raw.filter { $0.isNumber || $0 == "+" }
-        guard digits.count >= 7 else { return nil }
-        return URL(string: "tel:\(digits)")
+    var hasCallAction: Bool { callURL != nil }
+
+    /// Booking links from API, or built locally when the payload omits them.
+    var effectiveBookingLinks: [BookingLink] {
+        var links = bookingLinks ?? []
+        if links.isEmpty {
+            links = buildLocalBookingLinks()
+        } else if dialPhoneNumber == nil, let phone, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let digits = phone.filter { $0.isNumber || $0 == "+" }
+            if digits.count >= 7 {
+                links.append(BookingLink(provider: "phone", label: "Call restaurant", url: "tel:\(digits)"))
+            }
+        }
+        return links
     }
 
-    var hasCallAction: Bool { callURL != nil }
+    /// Opens Phone app when a number exists; otherwise Google Maps place page for the listing.
+    var callURL: URL? {
+        if let raw = dialPhoneNumber {
+            let digits = raw.filter { $0.isNumber || $0 == "+" }
+            if digits.count >= 7 { return URL(string: "tel:\(digits)") }
+        }
+        return mapsPlaceURL
+    }
+
+    var usesMapsCallFallback: Bool {
+        dialPhoneNumber == nil && mapsPlaceURL != nil
+    }
+
+    private var mapsPlaceURL: URL? {
+        guard let id = googlePlaceId, !id.isEmpty else { return nil }
+        let q = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return URL(string: "https://www.google.com/maps/search/?api=1&query=\(q)&query_place_id=\(id)")
+    }
+
+    private func buildLocalBookingLinks() -> [BookingLink] {
+        var links: [BookingLink] = []
+        if let resyUrl, !resyUrl.isEmpty {
+            links.append(BookingLink(provider: "resy", label: "Reserve on Resy", url: resyUrl))
+        }
+        if let opentableId, !opentableId.isEmpty {
+            links.append(BookingLink(provider: "opentable", label: "Reserve on OpenTable", url: "https://www.opentable.com/r/\(opentableId)"))
+        }
+        if let tockUrl, !tockUrl.isEmpty {
+            links.append(BookingLink(provider: "tock", label: "Book on Tock", url: tockUrl))
+        }
+        if let directBookingUrl, !directBookingUrl.isEmpty {
+            links.append(BookingLink(provider: "direct", label: "Book Direct", url: directBookingUrl))
+        }
+        if let phone, !phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let digits = phone.filter { $0.isNumber || $0 == "+" }
+            if digits.count >= 7 {
+                links.append(BookingLink(provider: "phone", label: "Call restaurant", url: "tel:\(digits)"))
+            }
+        }
+        return links
+    }
 
     private static func isDrinkDish(_ dish: Dish) -> Bool {
         switch (dish.dishType ?? "").lowercased() {

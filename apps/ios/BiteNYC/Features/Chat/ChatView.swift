@@ -12,26 +12,34 @@ struct ChatView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 16) {
-                            if model.messages.isEmpty { intro }
-                            ForEach(model.messages) { message in
-                                messageView(message).id(message.id)
-                            }
                             if model.isSending {
                                 FoodPunInlineLoadingView(quote: LoadingQuotes.chat[0])
+                                    .id("chat-loading")
+                            }
+
+                            ForEach(model.messages) { message in
+                                turnView(message).id(message.id)
+                            }
+
+                            if model.messages.isEmpty {
+                                intro
                             }
                         }
                         .padding()
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .onChange(of: model.messages.count) {
-                        if let last = model.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                        scrollToLatest(proxy)
                     }
-                    .onChange(of: model.messages.last?.isStreaming) { _, streaming in
-                        guard streaming == false, let last = model.messages.last else { return }
-                        proxy.scrollTo(last.id, anchor: .bottom)
+                    .onChange(of: model.newestAssistant?.isStreaming) { _, streaming in
+                        guard streaming == false else { return }
+                        scrollToLatest(proxy)
                     }
-                    .onChange(of: model.messages.last?.visibleResultCount) { _, _ in
-                        if let last = model.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .bottom) } }
+                    .onChange(of: model.newestAssistant?.visibleResultCount) { _, _ in
+                        scrollToLatest(proxy, animated: false)
+                    }
+                    .onChange(of: model.isSending) { _, sending in
+                        if sending { scrollToTop(proxy) }
                     }
                 }
                 inputBar
@@ -51,6 +59,19 @@ struct ChatView: View {
         }
         .onAppear { consumePendingPrompt() }
         .onChange(of: router.pendingChatPrompt) { _, _ in consumePendingPrompt() }
+    }
+
+    private func scrollToLatest(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        guard let id = model.latestTurnID else { return }
+        if animated {
+            withAnimation { proxy.scrollTo(id, anchor: .top) }
+        } else {
+            proxy.scrollTo(id, anchor: .top)
+        }
+    }
+
+    private func scrollToTop(_ proxy: ScrollViewProxy) {
+        withAnimation { proxy.scrollTo("chat-loading", anchor: .top) }
     }
 
     /// Sends a prompt handed over from another tab (e.g. the Home hero). Runs in
@@ -82,49 +103,58 @@ struct ChatView: View {
     }
 
     @ViewBuilder
-    private func messageView(_ message: ChatMessage) -> some View {
+    private func turnView(_ message: ChatMessage) -> some View {
         if message.role == "user" {
-            HStack {
-                Spacer()
-                Text(message.text)
-                    .padding(10)
-                    .background(Theme.accent)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
+            userBubble(message)
         } else {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "fork.knife.circle.fill")
-                            .foregroundStyle(Theme.accent)
-                        Text("BiteNYC")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(Theme.accent)
-                        if message.isStreaming {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(Theme.accent)
-                        }
-                    }
-                    assistantMessageBody(message)
-                }
-                .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(message.isError ? Theme.bad.opacity(0.12) : Theme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Theme.accent.opacity(0.12), lineWidth: 1)
-                )
+            assistantTurn(message)
+        }
+    }
 
-                ForEach(Array(message.results.prefix(message.visibleResultCount))) { result in
-                    NavigationLink(value: RestaurantRoute(slug: result.restaurant.slug)) {
-                        RestaurantCard(restaurant: result.restaurant, whyItFits: result.whyItFits)
+    private func userBubble(_ message: ChatMessage) -> some View {
+        HStack {
+            Spacer()
+            Text(message.text)
+                .padding(10)
+                .background(Theme.accent)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    @ViewBuilder
+    private func assistantTurn(_ message: ChatMessage) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "fork.knife.circle.fill")
+                        .foregroundStyle(Theme.accent)
+                    Text("BiteNYC")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                    if message.isStreaming {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(Theme.accent)
                     }
-                    .buttonStyle(.plain)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+                assistantMessageBody(message)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(message.isError ? Theme.bad.opacity(0.12) : Theme.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(Theme.accent.opacity(0.12), lineWidth: 1)
+            )
+
+            ForEach(Array(message.results.prefix(message.visibleResultCount))) { result in
+                NavigationLink(value: RestaurantRoute(slug: result.restaurant.slug)) {
+                    RestaurantCard(restaurant: result.restaurant, whyItFits: result.whyItFits)
+                }
+                .buttonStyle(.plain)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
     }
