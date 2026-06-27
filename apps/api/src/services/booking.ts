@@ -24,6 +24,12 @@ export function buildBookingLinks(r: Restaurant): BookingLink[] {
   if (r.direct_booking_url) {
     links.push({ provider: "direct", label: "Book Direct", url: r.direct_booking_url });
   }
+  if (r.phone) {
+    const digits = r.phone.replace(/[^\d+]/g, "");
+    if (digits) {
+      links.push({ provider: "phone", label: "Call restaurant", url: `tel:${digits}` });
+    }
+  }
 
   return links;
 }

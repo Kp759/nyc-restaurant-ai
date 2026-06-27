@@ -14,12 +14,15 @@ struct RootView: View {
                 .tag(AppRouter.Tab.explore)
 
             ChatView()
-                .tabItem { Label("Ask AI", systemImage: "bubble.left.and.text.bubble.right") }
+                .tabItem { Label("Ask me", systemImage: "bubble.left.and.text.bubble.right") }
                 .tag(AppRouter.Tab.chat)
 
-            SavedListsView()
-                .tabItem { Label("Saved", systemImage: "bookmark") }
-                .tag(AppRouter.Tab.saved)
+            AccountView()
+                .tabItem { Label("You", systemImage: "person.crop.circle") }
+                .tag(AppRouter.Tab.account)
+        }
+        .sheet(item: $router.reservationTarget) { restaurant in
+            ReserveSheet(restaurant: restaurant)
         }
     }
 }
@@ -28,5 +31,6 @@ struct RootView: View {
     RootView()
         .environmentObject(SavedListsStore())
         .environmentObject(AppRouter())
+        .environmentObject(AccountStore())
         .preferredColorScheme(.dark)
 }

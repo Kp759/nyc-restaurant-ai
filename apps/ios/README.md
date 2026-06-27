@@ -27,6 +27,10 @@ Then pick an iPhone simulator and Run.
 The API base URL is read from `Info.plist` -> `BiteNYCAPIBaseURL`
 (default `http://localhost:4000`).
 
+Optional Supabase auth keys (for real sign-in): `BiteNYCSupabaseURL` and
+`BiteNYCSupabaseAnonKey`. Without them, auth runs in local demo mode and
+**Continue as guest** still opens the app.
+
 - **Simulator:** `http://localhost:4000` works (run `pnpm dev:api` first).
 - **Physical device:** change it to your Mac's LAN IP, e.g.
   `http://192.168.1.20:4000`, and make sure the device is on the same network.
@@ -41,7 +45,8 @@ BiteNYC/
 ├── Networking/     # Codable models + async URLSession APIClient
 ├── UI/             # shared components (cards, chips, flow layout, badges)
 └── Features/
-    ├── Home/       # Ask-AI entry, prompt chips, NYC vibe categories
+    ├── Auth/       # Login & sign up (Apple, Google, email)
+    ├── Home/       # Ask-AI entry, occasion chips, neighborhood presets
     ├── Search/     # grounded AI search results
     ├── Explore/    # list/map toggle + filters
     ├── Detail/     # hero, dishes, booking, clips, gallery, map, similar

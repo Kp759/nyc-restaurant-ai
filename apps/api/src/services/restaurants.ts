@@ -85,11 +85,30 @@ export async function getSimilarRestaurants(
 
 /** Keep only approved media in public payloads and sort dishes by rank. */
 function normalizeDetail(row: any): RestaurantDetail {
-  const media = (row.media ?? []).filter(
-    (m: any) => m.moderation_status === "approved",
-  );
+  const media = (row.media ?? [])
+    .filter((m: any) => m.moderation_status === "approved")
+    .map((m: any) => ({
+      ...m,
+      url: normalizeMediaUrl(m.url),
+      thumbnail_url: normalizeMediaUrl(m.thumbnail_url),
+    }));
   const dishes = (row.dishes ?? []).sort(
     (a: any, b: any) => (a.rank ?? 0) - (b.rank ?? 0),
   );
   return { ...row, media, dishes } as RestaurantDetail;
+}
+
+/** Store relative `/photo` paths so clients can attach their current API host. */
+function normalizeMediaUrl(url: string | null | undefined): string | null | undefined {
+  if (!url) return url;
+  if (url.startsWith("/photo")) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname === "/photo" || parsed.pathname.endsWith("/photo")) {
+      return `/photo${parsed.search}`;
+    }
+  } catch {
+    /* ignore malformed URLs */
+  }
+  return url;
 }

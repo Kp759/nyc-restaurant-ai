@@ -64,14 +64,18 @@ struct RemoteImage: View {
     var contentMode: ContentMode = .fill
 
     var body: some View {
-        AsyncImage(url: url.flatMap(URL.init(string:))) { phase in
+        AsyncImage(url: MediaURLResolver.resolve(url)) { phase in
             switch phase {
             case let .success(image):
                 image.resizable().aspectRatio(contentMode: contentMode)
             case .failure:
                 placeholder.overlay(Image(systemName: "fork.knife").foregroundStyle(.secondary))
             case .empty:
-                placeholder.overlay(ProgressView())
+                placeholder.overlay(
+                    Text(LoadingQuotes.image[0].emoji)
+                        .font(.title2)
+                        .opacity(0.7)
+                )
             @unknown default:
                 placeholder
             }

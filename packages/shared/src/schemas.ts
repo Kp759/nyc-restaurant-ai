@@ -84,6 +84,7 @@ export const restaurantSchema = z.object({
   rating: z.number().min(0).max(5).nullable().optional(),
   review_count: z.number().int().default(0),
   google_place_id: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
   yelp_business_id: z.string().nullable().optional(),
   opentable_id: z.string().nullable().optional(),
   resy_url: z.string().url().nullable().optional(),
